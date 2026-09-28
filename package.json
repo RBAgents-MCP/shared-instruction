@@ -1,15 +1,17 @@
 {
-  "name": "@mcagents-mcp/template",
+  "name": "@rbagents-mcp/shared-instruction",
   "version": "0.1.0",
-  "description": "MCP server and CLI for template",
+  "description": "Read-only MCP server delivering the Roblox development instruction set - Luau, Rojo, package architecture, asset submodules, data stores, auras, and naming.",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "template": "src/cli.js",
-    "template-server": "src/index.js"
+    "rbagents-shared-instruction": "src/cli.js",
+    "rbagents-shared-instruction-server": "src/index.js"
   },
   "files": [
     "src",
+    "content",
+    "LICENSE",
     "README.md"
   ],
   "scripts": {
@@ -23,9 +25,25 @@
     "node": ">=20"
   },
   "license": "MIT",
+  "author": "RBAgents",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RBAgents-MCP/shared-instruction.git"
+  },
+  "homepage": "https://github.com/RBAgents-MCP/shared-instruction#readme",
+  "bugs": {
+    "url": "https://github.com/RBAgents-MCP/shared-instruction/issues"
+  },
   "keywords": [
     "mcp",
-    "model-context-protocol"
+    "model-context-protocol",
+    "roblox",
+    "rojo",
+    "luau",
+    "agent-instructions"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

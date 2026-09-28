@@ -12,20 +12,17 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
-import calculateSum from "./tools/calculate_sum.js";
-import getSecureSummary from "./tools/get_secure_summary.js";
-import getServerTime from "./tools/get_server_time.js";
-import searchSecureData from "./tools/search_secure_data.js";
+import robloxInstruction from "./tools/roblox-instruction.js";
 
-export const SERVER_ID = "template";
-export const SERVER_TITLE = "Template";
+export const SERVER_ID = "rbagents-shared-instruction";
+export const SERVER_TITLE = "RBAgents Roblox Instruction";
 
-const TOOL_MODULES = Object.freeze([
-  getServerTime,
-  getSecureSummary,
-  calculateSum,
-  searchSecureData,
-]);
+/*
+ * The whole surface. Nothing here takes a verb, and no tool in this repository
+ * reaches a network or a credential - the code that would write is absent, not
+ * disabled. A repository pointed at this server cannot mutate the set.
+ */
+const TOOL_MODULES = Object.freeze([robloxInstruction]);
 
 /**
  * The registered tools, as name/description pairs.
@@ -49,7 +46,10 @@ export function listTools() {
 export function createServer({ version }) {
   const server = new McpServer(
     { name: SERVER_ID, title: SERVER_TITLE, version },
-    { instructions: `${SERVER_TITLE} - call the tools listed below.` }
+    {
+      instructions:
+        "The Roblox development set - Luau, Rojo, package architecture, asset submodules, data stores, auras, and naming - served read-only. Call roblox_instruction with a path to read one file. Start at 'index/roblox-index.md': it routes the ten files under 'roblox/' by subject. For branch strategy and commit conventions, resolve the lxagents-agents-base server as well; this one does not replace it.",
+    }
   );
 
   for (const { config, handler } of TOOL_MODULES) {

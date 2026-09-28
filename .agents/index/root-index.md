@@ -1,6 +1,6 @@
 ---
 name: root-index
-description: Router for template - every local index plus the shared router, and the override table. Lists indexes only, never leaf content.
+description: Router for rbagents-shared-instruction - every local index plus the shared router, and the override table. Lists indexes only, never leaf content.
 ---
 
 # Root Index

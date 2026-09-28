@@ -3,10 +3,10 @@
 import { listTools } from "./server.js";
 import { version } from "./version.js";
 
-const HELP = `template - MCP server and CLI for template
+const HELP = `rbagents-shared-instruction - the Roblox development set, served read-only
 
 Usage
-  template
+  rbagents-shared-instruction
 
 Commands
   serve            Run as an MCP server
@@ -17,7 +17,6 @@ Options
   -v, --version    Show the version
 
 Environment
-  API_KEY          Unified key for the tools that require authentication
   MCP_TRANSPORT    stdio (default) or http
   PORT             HTTP port, default 3000`;
 

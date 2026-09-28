@@ -1,24 +1,45 @@
-# template
+# rbagents-shared-instruction
 
-MCP server and CLI for template.
+The Roblox development instruction set, served read-only over MCP.
 
-- **Organization:** `LXAgents-MCP`
-- **Repository:** `template`
-- **Server ID:** `template`
-- **Package:** `@mcagents-mcp/template`
-- **Dual-purpose:** a CLI (`template`) and an MCP server (`template-server`).
+- **Organization:** `RBAgents-MCP`
+- **Repository:** `shared-instruction`
+- **Server ID:** `rbagents-shared-instruction`
+- **Package:** `@rbagents-mcp/shared-instruction`
+- **Dual-purpose:** a CLI (`rbagents-shared-instruction`) and an MCP server
+  (`rbagents-shared-instruction-server`).
 
-One implementation behind two surfaces, so a result produced through the CLI is
-identical to the same result produced through an MCP client. Node.js 20+, ESM, no build
-step.
+The set covers **Luau**, **Rojo**, package architecture, asset submodules, data stores,
+character auras, and naming — written once and served to every Roblox repository. One
+implementation behind two surfaces, so a result produced through the CLI is identical to
+the same result produced through an MCP client. Node.js 20+, ESM, no build step.
 
-## Features
+## The one tool
 
-- MCP server over **stdio** and **streamable HTTP**, with a `/healthz` endpoint.
-- A CLI with `help`, `version`, `tools`, and `serve`.
-- One file per tool under `src/tools/`, with optional [zod](https://zod.dev) parameters
-  and an optional server-wide API key.
-- A test suite that pins the CLI and the MCP server to the same tool list.
+| Tool | Parameters | Returns |
+|---|---|---|
+| `roblox_instruction` | `path` (string) | One file from `content/`, verbatim |
+
+Read `index/roblox-index.md` first. It routes the ten files under `roblox/` by subject.
+
+There is no write path. No tool accepts a verb, no tool takes a credential, and no tool
+reaches a network. The code that would write is absent rather than disabled, so pointing a
+repository at this server cannot mutate the set.
+
+## This does not replace the org conventions
+
+A Roblox repository resolves **both** servers:
+
+| Server | Holds |
+|---|---|
+| `lxagents-agents-base` | Branch strategy, commit conventions, task workflow, pull requests, the creators. **Every repository resolves this one.** |
+| `rbagents-shared-instruction` (this one) | The Roblox platform conventions below. Roblox repositories only. |
+
+The org set governs how the branch is named and how the commit is written. This one
+governs what goes in it. Neither replaces the other.
+
+For the Roblox threat model — client zero-trust, server trust boundaries — see the sibling
+`RBAgents-MCP/security`.
 
 ## Quick start
 
@@ -29,26 +50,36 @@ npm run cli -- tools
 npm start
 ```
 
-Tools that require authentication read one key for the whole server:
+No key, no environment variable, no configuration. The server starts and answers with
+nothing set.
 
-```bash
-export API_KEY="your-key-here"
+## The set
+
+```
+content/
+  index/roblox-index.md        the router
+  roblox/
+    language/luau-authoring.md
+    toolchain/rojo-guide.md
+    toolchain/rojo-studio-mcp.md
+    architecture/package-architecture.md
+    architecture/asset-submodules.md
+    security/zero-trust-networking.md
+    security/trust-boundaries.md
+    game-systems/data-store-management.md
+    game-systems/character-auras.md
+    conventions/naming-conventions.md
 ```
 
-Leave it unset and everything still starts — only calling an authenticated tool fails.
+## Register it
 
-## Sample tools
+| Transport | How |
+|---|---|
+| Local stdio | `command: node`, `args: ["src/index.js"]`, `cwd:` this checkout |
+| Local HTTP | `npm run start:http`, then `http://localhost:3000/mcp` |
+| Remote | Settings → Connectors → Add custom connector → `https://<host>/mcp` |
 
-Four tools ship with this template to demonstrate the four combinations of *takes
-parameters* and *requires an API key*. **They are deleted when a real project is
-scaffolded from it.**
-
-| Tool | Parameters | API key |
-|---|---|---|
-| `get_server_time` | none | no |
-| `get_secure_summary` | none | yes |
-| `calculate_sum` | `a`, `b` | no |
-| `search_secure_data` | `query` | yes |
+The `/mcp` path is not optional on either HTTP form.
 
 ## Documentation
 
@@ -61,16 +92,17 @@ scaffolded from it.**
 
 Full map: [`.agents/index/project-wiki-index.md`](.agents/index/project-wiki-index.md).
 
-## Scaffolding a new project
-
-This repository is a template. To turn it into a real project, follow
-[`PROMPT.md`](PROMPT.md).
-
 ## Working with agents
 
 Start at [`AGENTS.md`](AGENTS.md). Shared conventions — branching, commits, pull
 requests, the task workflow — are served by the `lxagents-agents-base` MCP connector and
 are not stored in this repository.
+
+## Provenance
+
+The ten files under `content/roblox/` are copied verbatim from the workspace `roblox` set
+with their frontmatter intact. A convention change belongs there first; this repository is
+a delivery surface for it, not its editor.
 
 ## License
 
