@@ -49,6 +49,12 @@ Node.js 20+, ESM, no build step. Three runtime dependencies:
   `hostHeaderValidation` **mounted natively** — the hand-written `hostGuard` shim
   that inferred refusal from whether a stand-in `res.json()` was called is deleted.
   See [`../decisions/express-for-http-transport.md`](../decisions/express-for-http-transport.md).
+* **Cluster workers on one port.** On HTTP the process that starts is a `node:cluster`
+  primary: it forks workers onto the one `PORT`, binds nothing itself, and relays
+  `SIGINT`/`SIGTERM` to every worker before exiting. The count is
+  `MCP_CLUSTER_WORKERS`, or one per available CPU; `1` forks nothing. Workers exit on
+  `disconnect`, so a `kill -9` of the primary leaves no orphan holding the port. stdio
+  never forks.
 
 ## What is not built
 

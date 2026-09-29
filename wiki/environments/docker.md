@@ -86,10 +86,14 @@ The server binds `0.0.0.0` by default, which is what a published port needs.
 * `MCP_ALLOWED_HOSTS` is a comma-separated allow-list of `Host` header values.
   **An empty or unset value means the guard is off** — the safe-looking default is
   the unsafe one. A deployment that publishes this port should set it.
+* `MCP_CLUSTER_WORKERS` sets how many worker processes fork onto port 3000. **A
+  container gets one worker per CPU it was given** by default, so a one-CPU
+  container runs a single worker and a four-CPU container runs four. `1` forks
+  nothing at all.
 
-Both are documented in [`env.md`](env.md). Neither is authentication, and this
-server has none: the allow-list narrows who may address it, and does not decide who
-may read the set.
+All three are documented in [`env.md`](env.md). None of them is authentication, and
+this server has none: the allow-list narrows who may address it, and does not decide
+who may read the set.
 
 ## Related pages
 

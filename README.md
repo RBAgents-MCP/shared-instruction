@@ -117,6 +117,18 @@ Request bodies are capped at 4 MB; an oversized body and a malformed one are bot
 answered `400` / `-32700`. `X-Powered-By` is disabled, because handing an
 unauthenticated caller the framework and its version is a free upgrade suggestion.
 
+### One port, several processes
+
+The HTTP process is a `node:cluster` primary. It forks workers onto the one `PORT` and
+does not listen itself, so every startup line in a log describes a port that is
+genuinely open. The default is one worker per available CPU; `MCP_CLUSTER_WORKERS=1`
+forks nothing at all.
+
+`SIGINT` or `SIGTERM` reaches the primary, which relays it to every worker and waits
+for the last one to drain its in-flight requests and exit. A worker whose primary is
+killed outright notices the closed channel and exits rather than holding the port.
+stdio never forks — a worker would inherit the JSON-RPC channel.
+
 ## The set
 
 ```
