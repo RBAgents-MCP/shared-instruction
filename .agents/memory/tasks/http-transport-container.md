@@ -154,3 +154,14 @@ form reads the variable at the same place, in the same order, as `src/index.js`
 does — which is the DECIDED block's test for picking the right one. The stdio entry
 point is untouched: `npm start` still runs `node src/index.js` with nothing set,
 and `serve --stdio` still wins over `--http`.
+
+### The 404 body, named before it was asserted
+
+The verification file requires a 404 "whose body names what this server actually
+serves". `Not found: /nope` did not — it named the miss and nothing else, so a
+reader who mistyped the path learned no more than the status code told them. The
+body now ends `This server serves GET /healthz and POST /mcp.`
+
+This is a behaviour change the step list does not contain and the verification file
+does. It is its own commit rather than folded into the test, so the test that
+asserts it is not also the thing that introduced it.

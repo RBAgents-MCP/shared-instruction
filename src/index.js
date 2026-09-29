@@ -107,7 +107,12 @@ if (transportName === "http" || transportName === "streamable-http") {
     }
 
     if (req.url !== "/mcp") {
-      rpcError(res, 404, -32601, `Not found: ${req.url}`);
+      rpcError(
+        res,
+        404,
+        -32601,
+        `Not found: ${req.url}. This server serves GET /healthz and POST /mcp.`
+      );
       return;
     }
 
