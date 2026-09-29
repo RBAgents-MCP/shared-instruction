@@ -28,13 +28,13 @@ content/                      the published set - the product
 src/
   index.js                    entry point; picks stdio or streamable HTTP, owns the HTTP server
   server.js                   builds the McpServer and registers every tool; exports listTools()
-  content.js                  resolves a path inside content/, with the traversal defence
+  content.js                  the set root: CONTENT_DIR
   cli.js                      the CLI: help, version, tools, serve
   version.js                  reads version out of package.json at import
   tools/
-    roblox-instruction.js    the only tool: read one file from the set by path
+    from-content.js           walks content/ and builds the whole tool surface at boot
 test/
-  server.test.js              registration, schema, every file, traversal, surface parity
+  server.test.js              files-to-tools bijection, derived names, no input schema, byte-for-byte serving, surface parity
   http.test.js                the HTTP transport over a real spawned process and socket
 wiki/                         human documentation
 .agents/                      this set - rules, agent wiki, memory, indexes
@@ -75,11 +75,14 @@ suite.
 
 * **stdout is the protocol.** On stdio, a `console.log` anywhere on the server path
   corrupts the JSON-RPC stream. Log to stderr. Only CLI commands print.
-* **Tool schemas are raw shapes.** `server.tool()` wants `{ a: z.number() }`, not
-  `z.object({ ... })`. Wrapping it silently produces a tool with no parameters.
-* **Reject `..` before the filesystem call.** A check that runs after `fs` is checking a
-  value the caller already influenced. `src/content.js` does both: the segment check
-  first, the containment check after, and the second is redundant on purpose.
+* **The set is the tool surface.** Adding a markdown file under `content/` adds a
+  tool, named from its basename. There is no per-tool source file and nothing to
+  register — `src/tools/from-content.js` builds the array and `src/server.js` freezes
+  it. A file with no frontmatter `description:` fails the process at boot.
+* **There is no path into `content/`, and no traversal check, on purpose.** No tool
+  takes an argument, so there is nothing to traverse with. Do not reintroduce a
+  `readSetFile` or a caller-supplied path as a convenience; that would undo the
+  structural read-only property.
 * **A fresh `McpServer` per HTTP request.** `src/index.js` builds and closes one per
   request because `McpServer` holds per-connection state. Do not hoist it to module
   scope.
@@ -90,7 +93,7 @@ suite.
 * **`content/` is the product, not a source folder.** Every file in it is served
   verbatim on the next boot, with its frontmatter intact. `src/` is local; a change to
   `content/` changes what every consuming repository reads.
-* **Do not add a write path.** The single-tool read-only surface is the property a
+* **Do not add a write path.** The argument-free read-only surface is the property a
   consuming repository depends on. See
   [`../../rules/tool-authoring.md`](../../rules/tool-authoring.md).
 * **`version.js` reads `package.json` at import** via a path relative to `src/`. Moving

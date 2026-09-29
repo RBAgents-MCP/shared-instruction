@@ -1,82 +1,83 @@
 ---
 name: tool-authoring
-description: The contract for adding a tool - one file per tool under src/tools/, the config and handler exports, zod schemas, and registration.
+description: The contract for the tool surface - one tool per markdown file under content/, generated at boot by src/tools/from-content.js. There is no per-tool source file to hand-write.
 ---
 
 # Tool Authoring
 
-One tool is one file. This is what keeps the tool layer reviewable and stops
-`src/server.js` growing into the array this layer replaced.
+**There is no per-tool source file.** One tool is one markdown file under `content/`, and
+the tool that serves it is generated at boot by `src/tools/from-content.js`. Adding a
+markdown file to the set *is* adding a tool.
 
-## The surface is read-only
+## The surface is read-only, and argument-free
 
-This server has one tool and it is a read. Do not add a tool that takes a verb, a
-credential, or a network call.
+No tool takes an argument, so there is no verb to act on, no credential to present, and no
+path to traverse with. None of them opens a socket either. Do not add a tool that takes a
+verb, a credential, or a network call.
 
 The property is **structural**: the code that would write is absent, not disabled behind
 a check. That is stronger than a permission check on a general-purpose tool, and it is
 what a consuming repository depends on when it points at this server — it cannot mutate
 the set, because there is nothing here that mutates anything.
 
-## File shape
+## How a name is derived
 
-A tool lives at `src/tools/{tool_name}.js`, where `{tool_name}` is the registered tool
-name character for character. It exports two things and a default that pairs them:
+Basename, with the folder dropped; `.md` removed, lowercased, `-` turned to `_`.
 
-```js
-import { z } from "zod";
+| File | Tool |
+|---|---|
+| `index/roblox-index.md` | `roblox_index` |
+| `roblox/security/trust-boundaries.md` | `trust_boundaries` |
+| `roblox/toolchain/rojo-studio-mcp.md` | `rojo_studio_mcp` |
 
-export const config = {
-  name: "roblox_instruction",
-  description: "Read one convention from the set by path, e.g. 'index/roblox-index.md'. Read-only - this tool cannot write.",
-  schema: {
-    path: z.string().describe("Path inside the set, e.g. 'roblox/language/luau-authoring.md'. Never a leading slash, never '..'."),
-  },
-};
+Dropping the folder is what keeps the names a caller types short. The cost is that two
+folders holding the same filename collide — which is a **startup error**, not a silent
+shadow, so the collision is caught by booting rather than by a caller noticing.
 
-export async function handler({ path }) {
-  const text = await readSetFile(path);
-  if (text === null) {
-    return { content: [{ type: "text", text: `not found: ${path}` }] };
-  }
-  return { content: [{ type: "text", text }] };
-}
+`NAME_OVERRIDES` in `from-content.js` is the escape hatch for a basename that cannot
+survive derivation. This set needs no entry; adding one is a deliberate, explained
+exception, not a convenience.
 
-export default { config, handler };
+## What the generator requires of a file
+
+`from-content.js` fails the process, rather than serving something wrong, on:
+
+* a derived name that is not a valid MCP tool name — `/^[a-z][a-z0-9_]{0,63}$/`;
+* a name two files both derive;
+* a file with **no frontmatter `description:`** — the description is the tool
+  description, and a file without one is a tool a client cannot route on;
+* an empty set.
+
+So a file that is going to be served needs, at minimum:
+
+```markdown
+---
+name: some-name
+description: One line an agent can route on without calling the tool.
+---
 ```
 
-| Export | Required | What it is |
-|---|---|---|
-| `config.name` | yes | The registered tool name. Matches the filename. |
-| `config.description` | yes | One line an agent can route on without calling the tool. |
-| `config.schema` | no | A **zod raw shape** - a plain object of zod validators. Omit it entirely for a tool that takes no arguments. |
-| `handler` | yes | `async (args) => ({ content: [...] })`. Receives the parsed arguments when a schema is declared, and nothing useful when it is not. |
-| default | yes | `{ config, handler }`, so `src/server.js` imports one binding per tool. |
-
-## The schema is a raw shape, not a z.object
-
-`server.tool(name, description, schema, handler)` expects a `ZodRawShape`. Pass
-`{ a: z.number() }`, never `z.object({ a: z.number() })` - wrapping it produces a tool
-whose input schema has no properties and whose handler receives nothing.
-
-Describe every field with `.describe()`. That text is what reaches the calling model as
-the parameter's documentation; without it the caller is guessing.
+`version:` and `author:` are not required by the generator, but the set carries them on
+every file and `wiki/logs/` history is written from them. Add all four.
 
 ## Registration
 
-`src/server.js` imports each tool module individually and registers it:
+There is nothing to register. `src/server.js` freezes the generated array:
 
 ```js
-server.tool(config.name, config.description, config.schema, handler);
+import { CONTENT_TOOLS } from "./tools/from-content.js";
+const TOOL_MODULES = Object.freeze(CONTENT_TOOLS);
 ```
 
-A tool with no `config.schema` is registered with the three-argument form instead. Both
-forms are in `src/server.js` already - follow whichever matches the tool.
+and registers each with the three-argument form, because no generated tool declares a
+schema:
 
-Adding a tool means two edits and nothing else: the new file, and its import plus its
-entry in the `TOOL_MODULES` array. Do not add a registration path that bypasses that
-array; `listTools()` and the CLI read it, and a tool registered outside it is invisible
-to both.
+```js
+server.tool(config.name, config.description, handler);
+```
+
+Do not add a tool outside `TOOL_MODULES` — `listTools()` and the CLI both read that array,
+so anything registered elsewhere is invisible to both.
 
 ## Authentication
 
@@ -84,28 +85,37 @@ No tool in this repository needs a credential. If one ever did, it checks **insi
 handler** — see [`secrets.md`](secrets.md). Never at module scope, and never as a
 condition on whether the tool is registered.
 
-## Paths into `content/`
+## Reading from the set
 
-A tool that reads from the set goes through `readSetFile` in `src/content.js`. Do not call
-`fs` directly from a handler: the traversal defence lives in that one place, and a second
-path to the filesystem is a second thing to get right.
+`CONTENT_DIR` in `src/content.js` is the only place the set root is defined, and the
+generator resolves every read from a path it walked itself. There is no `readSetFile` and
+no caller-supplied path to validate — do not reintroduce either as a "convenience", and
+do not call `fs` from anywhere else. A second way to read the filesystem is a second thing
+to get right.
 
-Return `not found` as ordinary content for an unknown path. That is a lookup miss, not a
-server fault, and a thrown error would be indistinguishable from a real failure.
+## The set is not edited here
+
+`content/` is a delivery surface. A convention change belongs upstream, in the workspace
+set that authors it, and is then copied in. Fixing a file here forks it from its source.
 
 ## Errors
 
-Throw a plain `Error` with a message that says what was missing and what to do about
-it. The MCP SDK turns a thrown error into an error result for the caller, so there is
-no need to hand-build one.
-
-Do not return an error as ordinary text content. A caller cannot tell that apart from a
-successful answer.
+The set is read at boot, so a malformed file fails the process with a plain `Error`
+saying which file and why. There is no per-call error path to design: a tool either exists
+and returns its file, or the server did not start.
 
 ## Tests
 
-Every tool gets coverage in `test/server.test.js`:
+`test/server.test.js` pins the surface, and every case in it is a property rather than a
+sample:
 
-* it appears in `listTools()` and in the client's `tools/list`;
-* a tool with a schema has its parameters present in the advertised input schema;
-* a tool that requires the API key fails without it and succeeds with it.
+* the tool list and the files on disk are a bijection, in both directions;
+* every name is derived from its own filename, and names are unique;
+* **no tool declares an input schema** — the structural claim, and the replacement for the
+  traversal defence the old path-taking tool needed;
+* every tool serves its file byte for byte, frontmatter intact;
+* the total text returned across the tools equals the total markdown on disk;
+* `roblox_index` routes all ten files under `roblox/`.
+
+The last one is what forces the index to stay complete as files are added. Adding a
+convention without adding it to `content/index/roblox-index.md` fails the suite.

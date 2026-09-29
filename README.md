@@ -14,17 +14,35 @@ character auras, and naming — written once and served to every Roblox reposito
 implementation behind two surfaces, so a result produced through the CLI is identical to
 the same result produced through an MCP client. Node.js 20+, ESM, no build step.
 
-## The one tool
+## The tools
 
-| Tool | Parameters | Returns |
-|---|---|---|
-| `roblox_instruction` | `path` (string) | One file from `content/`, verbatim |
+One tool per file, named from the file's own basename. No tool takes an argument.
 
-Read `index/roblox-index.md` first. It routes the ten files under `roblox/` by subject.
+| Tool | Returns |
+|---|---|
+| `roblox_index` | The router for the set |
+| `luau_authoring` | Luau authoring conventions |
+| `naming_conventions` | The four naming rules |
+| `package_architecture` | Package-based modularity |
+| `asset_submodules` | 3D assets as Git submodules |
+| `data_store_management` | DataStore access and session locking |
+| `character_auras` | Auras, and why they are free |
+| `trust_boundaries` | Client versus server authority |
+| `zero_trust_networking` | Validating every remote payload |
+| `rojo_guide` | The four top-level directories |
+| `rojo_studio_mcp` | A stable instance tree |
 
-There is no write path. No tool accepts a verb, no tool takes a credential, and no tool
-reaches a network. The code that would write is absent rather than disabled, so pointing a
-repository at this server cannot mutate the set.
+Each tool returns one file from `content/` verbatim, frontmatter included. Start at
+`roblox_index`; it routes the ten files under `roblox/` by subject.
+
+Adding a markdown file to `content/` adds the tool that serves it. Nothing is registered
+by hand, and the file is read once at boot, so a call is a lookup rather than a filesystem
+read.
+
+There is no write path. No tool accepts an argument at all — so there is no verb, no
+credential and no path to traverse with — and no tool reaches a network. The code that
+would write is absent rather than disabled, so pointing a repository at this server cannot
+mutate the set.
 
 ## This does not replace the org conventions
 

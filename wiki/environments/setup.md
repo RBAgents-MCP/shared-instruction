@@ -24,7 +24,7 @@ Two dependencies: `@modelcontextprotocol/sdk` and `zod`.
 ## No authentication
 
 Nothing here reaches an external service, so there is no key to set. The server
-starts, lists its tool, and answers every request with nothing configured. A few
+starts, lists its tools, and answers every request with nothing configured. A few
 optional variables select the transport and narrow who may address it; none of them
 is a credential. Full list: [`env.md`](env.md).
 
@@ -59,11 +59,15 @@ rbagents-shared-instruction tools
 `tools` prints every registered tool with its description:
 
 ```text
-roblox_instruction  Read one convention from the set by path, e.g. 'roblox/toolchain/rojo-guide.md'. …
+roblox_index           Index of the Roblox development set - Luau, Rojo, package architecture, assets, data stores, auras, and naming, for every Roblox repository.
+luau_authoring         Luau only, never standard Lua — strict mode, export type, and typed signatures on every function this project writes.
+naming_conventions     The four naming rules for Roblox code — PascalCase types, camelCase functions, …
+…
 ```
 
-The list comes from `listTools()` in `src/server.js` — the same list the MCP server
-registers — so the two surfaces cannot disagree.
+One line per file in `content/`, named from the file's own basename and described by that
+file's own frontmatter. The list comes from `listTools()` in `src/server.js` — the same
+list the MCP server registers — so the two surfaces cannot disagree.
 
 ### Exit codes
 
@@ -129,14 +133,14 @@ curl -s http://localhost:3000/healthz
 ### In a container
 
 ```bash
-docker build -t rbagents-shared-instruction:0.1.0 .
+docker build -t rbagents-shared-instruction:1.0.0 .
 
 # stdio
-docker run --rm -i rbagents-shared-instruction:0.1.0
+docker run --rm -i rbagents-shared-instruction:1.0.0
 
 # streamable HTTP
 docker run --rm -p 3000:3000 \
-  -e MCP_TRANSPORT=http rbagents-shared-instruction:0.1.0
+  -e MCP_TRANSPORT=http rbagents-shared-instruction:1.0.0
 ```
 
 The image runs `src/index.js`, so it serves stdio unless `MCP_TRANSPORT` says
