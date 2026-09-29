@@ -57,6 +57,7 @@ wiki/                         human documentation
 |---|---|---|
 | `MCP_TRANSPORT` | `src/index.js` | `stdio` (default) or `http`. |
 | `PORT` | `src/index.js` | HTTP port, default `3000`. |
+| `MCP_ALLOWED_HOSTS` | `src/index.js` | Comma-separated `Host` allow-list on the HTTP transport. Off when unset, and the server says so on stderr at startup. |
 
 There is no `API_KEY`. Nothing here reaches an external service.
 
@@ -80,6 +81,10 @@ suite.
 * **A fresh `McpServer` per HTTP request.** `src/index.js` builds and closes one per
   request because `McpServer` holds per-connection state. Do not hoist it to module
   scope.
+* **The Host allow-list is off when unset.** `MCP_ALLOWED_HOSTS` empty means every
+  `Host` header is accepted, which is the safe-looking default and the unsafe one.
+  The SDK only applies this automatically on loopback, and a container is the case
+  that needs it.
 * **`content/` is the product, not a source folder.** Every file in it is served
   verbatim on the next boot, with its frontmatter intact. `src/` is local; a change to
   `content/` changes what every consuming repository reads.

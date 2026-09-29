@@ -63,3 +63,26 @@ reworded rather than left to grow more wrong.
 
 `AGENTS.md`'s "none opens a socket" needed no edit: no tool was added, none gained an
 argument, and the only socket is the listener `src/index.js` already had.
+
+### S5 — the Host allow-list
+
+`MCP_ALLOWED_HOSTS` is parsed into a trimmed, non-empty list and, when it is
+non-empty, checked before the body parser and before any route. When it is empty,
+nothing is applied and the process writes exactly one line to **stderr** saying the
+allow-list is off. It matches on hostname, so `example.test` also answers
+`example.test:3000`.
+
+**The middleware is Express-shaped and this server is not.** `hostHeaderValidation`
+refuses with `res.status(code).json(body)` and hands on with `next()`, neither of
+which `node:http` provides. It is wrapped in `hostGuard()`, which supplies the two
+methods the middleware actually calls and a no-op next. The guard is the SDK's; only
+the response writer is ours — which is what let the owner's decision to drop
+`express` cost nothing here. The plan assumed the middleware would drop onto
+`node:http` unchanged, and it does not.
+
+`README.md` said "No key, no environment variable, no configuration." That sentence
+is replaced, not deleted: the exception is stated, the **empty value means the guard
+is off** is the load-bearing clause, and it points at `wiki/environments/env.md`.
+`env.md` gained the row and a section; `repository-map.md` gained the variable and
+a gotcha; `repository-state.md` was reworded from "unauthenticated and open" to
+"narrowed by an allow-list that is off when unset".

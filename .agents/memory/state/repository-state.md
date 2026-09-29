@@ -42,7 +42,10 @@ Node.js 20+, ESM, no build step. Two runtime dependencies:
 
 ## What is not built
 
-* The HTTP transport is stateless and unauthenticated; `/healthz` and `/mcp` are open.
+* The HTTP transport is stateless and unauthenticated, and it is not a stateful
+  server in front of a store. `MCP_ALLOWED_HOSTS` narrows which `Host` header
+  values are answered, and is **off when unset** — narrower than no check at all,
+  and still not authentication.
 * No CI workflow, no linter, no formatter.
 * `content/` is a copy. A change to the set belongs upstream in the workspace set first;
   this repository is a delivery surface for it, not its editor.

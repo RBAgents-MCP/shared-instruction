@@ -50,8 +50,34 @@ npm run cli -- tools
 npm start
 ```
 
-No key, no environment variable, no configuration. The server starts and answers with
-nothing set.
+No key, no configuration, nothing required. The server starts and answers with nothing
+set.
+
+### One exception: `MCP_ALLOWED_HOSTS`
+
+The HTTP transport reads one security variable, and it is worth stating plainly
+because the default is the unsafe one.
+
+**An empty or unset `MCP_ALLOWED_HOSTS` means the guard is off.** The server then
+accepts every `Host` header, and says so once on stderr at startup. Set it to a
+comma-separated allow-list of hostnames to turn it on:
+
+```bash
+MCP_TRANSPORT=http MCP_ALLOWED_HOSTS=example.test,localhost node src/index.js
+```
+
+A request whose `Host` is not on the list is refused `403` before it reaches a route.
+The list matches the hostname, not `host:port`, so `example.test` also covers
+`example.test:3000`.
+
+Why it exists at all: the SDK applies Host validation automatically only when the
+server is on loopback. A container binds every interface — which is the deployment
+that needs the check — so this server applies it explicitly instead of inheriting a
+default that would have switched itself off exactly where it mattered.
+
+This is **not authentication**, and the server has none. It narrows who may address
+it; it does not decide who may read the set. Full variable reference:
+[`wiki/environments/env.md`](wiki/environments/env.md).
 
 ## The set
 
