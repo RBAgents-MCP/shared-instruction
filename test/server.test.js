@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { readFile, readdir } from "node:fs/promises";
+import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { CONTENT_DIR } from "../src/content.js";
+import { TOOL_FILES } from "../src/tools/from-content.js";
 import { SERVER_ID, createServer, listTools } from "../src/server.js";
 
 /**
@@ -32,6 +36,36 @@ function textOf(result) {
   assert.equal(result.content.length, 1, "expected exactly one content block");
   return result.content[0].text;
 }
+
+/** Every markdown file in the served set, as [path-relative-to-content, absolute]. */
+async function markdownFiles(dir = CONTENT_DIR) {
+  const found = [];
+
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) found.push(...(await markdownFiles(full)));
+    else if (entry.name.endsWith(".md")) {
+      found.push([relative(CONTENT_DIR, full).split(sep).join("/"), full]);
+    }
+  }
+
+  return found.sort(([a], [b]) => a.localeCompare(b));
+}
+
+/** The eleven tools this set publishes, by name. */
+const TOOL_NAMES = [
+  "asset_submodules",
+  "character_auras",
+  "data_store_management",
+  "luau_authoring",
+  "naming_conventions",
+  "package_architecture",
+  "roblox_index",
+  "rojo_guide",
+  "rojo_studio_mcp",
+  "trust_boundaries",
+  "zero_trust_networking",
+];
 
 /** The ten Roblox conventions, in the shape the index routes them by. */
 const CONVENTIONS = [
@@ -66,107 +100,122 @@ test("the CLI list and the MCP tool list agree", async () => {
   });
 });
 
-test("roblox_instruction is the only tool", async () => {
+test("the surface is the eleven tools, one per file", async () => {
   await withClient(async ({ client }) => {
     const { tools } = await client.listTools();
 
-    assert.deepEqual(tools.map((tool) => tool.name), ["roblox_instruction"]);
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), [...TOOL_NAMES].sort());
   });
 });
 
-test("roblox_instruction advertises the path it takes", async () => {
+test("the tool list and the files on disk are a bijection", async () => {
+  // Both directions, because each catches a different mistake. Files-to-tools
+  // catches a file that was added and never surfaced; tools-to-files catches a
+  // tool serving something that is no longer in the set. Together they are what
+  // makes "add a file, get a tool" a property rather than a hope.
+  const files = (await markdownFiles()).map(([path]) => path);
+  const served = [...TOOL_FILES.values()].sort((a, b) => a.localeCompare(b));
+
+  assert.deepEqual(served, files);
+
+  assert.equal(
+    TOOL_FILES.size,
+    files.length,
+    "two files must not derive the same tool name"
+  );
+  assert.equal(files.length, TOOL_NAMES.length, "the set is eleven files");
+});
+
+test("every tool name is derived from its own filename", () => {
+  // The derivation is the design: a file's name is what a caller reads in the
+  // tool list, so it has to survive the trip. Folder stripped, `.md` dropped,
+  // kebab to snake. This set needs no override.
+  for (const [name, path] of TOOL_FILES) {
+    const expected = path
+      .split("/")
+      .pop()
+      .replace(/\.md$/, "")
+      .toLowerCase()
+      .replace(/-/g, "_");
+
+    assert.equal(name, expected, `${path} derives ${name}, expected ${expected}`);
+    assert.match(name, /^[a-z][a-z0-9_]{0,63}$/, `${name} is not a usable tool name`);
+  }
+});
+
+test("every tool has a distinct name and a description to route on", () => {
+  const names = listTools().map((tool) => tool.name);
+
+  assert.equal(new Set(names).size, names.length, "tool names must be unique");
+
+  for (const tool of listTools()) {
+    assert.ok(tool.description, `${tool.name} needs a description`);
+  }
+});
+
+test("no tool takes an argument", async () => {
+  // The structural claim, and the replacement for the traversal defence that the
+  // old path-taking tool needed. With no argument there is nothing to traverse
+  // with, so this is not a weaker version of the old check - it is the check.
   await withClient(async ({ client }) => {
     const { tools } = await client.listTools();
-    const tool = tools[0];
 
-    assert.deepEqual(Object.keys(tool.inputSchema.properties), ["path"]);
-    assert.equal(tool.inputSchema.properties.path.type, "string");
-    assert.deepEqual(tool.inputSchema.required, ["path"]);
+    for (const tool of tools) {
+      assert.deepEqual(
+        tool.inputSchema.properties ?? {},
+        {},
+        `${tool.name} must take no argument`
+      );
+      assert.deepEqual(
+        tool.inputSchema.required ?? [],
+        [],
+        `${tool.name} must require nothing`
+      );
+    }
   });
 });
 
-test("roblox_instruction returns a convention from the set", async () => {
+test("every tool returns its own file, whole and with frontmatter", async () => {
   await withClient(async ({ client }) => {
-    const text = textOf(
-      await client.callTool({
-        name: "roblox_instruction",
-        arguments: { path: "roblox/toolchain/rojo-guide.md" },
-      })
-    );
+    for (const [name, path] of TOOL_FILES) {
+      const text = textOf(await client.callTool({ name, arguments: {} }));
+      const onDisk = await readFile(join(CONTENT_DIR, path), "utf8");
 
-    // \r? because a checkout on Windows serves CRLF, and the bytes are served as
-    // they are on disk.
-    assert.match(text, /^---\r?\n/, "frontmatter is part of the served text");
-    assert.ok(text.includes("name:"), "frontmatter is not stripped");
+      assert.equal(text, onDisk, `${name} must serve ${path} byte for byte`);
+
+      // \r? because a checkout on Windows serves CRLF, and the bytes are served as
+      // they are on disk.
+      assert.match(text, /^---\r?\n/, `${name} must serve the frontmatter`);
+      assert.ok(text.includes("name:"), `${name} must not strip the frontmatter`);
+    }
   });
 });
 
-test("the index is reachable and routes the ten files", async () => {
+test("the whole set is served and nothing is served twice", async () => {
+  // Served twice would mean a file the set holds but a caller cannot reach by
+  // name; served short would mean a file silently dropped from the surface.
   await withClient(async ({ client }) => {
-    const text = textOf(
-      await client.callTool({
-        name: "roblox_instruction",
-        arguments: { path: "index/roblox-index.md" },
-      })
-    );
+    let total = 0;
+    for (const [name] of TOOL_FILES) {
+      total += textOf(await client.callTool({ name, arguments: {} })).length;
+    }
+
+    let onDisk = 0;
+    for (const [, full] of await markdownFiles()) {
+      onDisk += (await readFile(full, "utf8")).length;
+    }
+
+    assert.equal(total, onDisk, "the tools must serve exactly the files on disk");
+  });
+});
+
+test("roblox_index is the entry point and routes the ten files", async () => {
+  await withClient(async ({ client }) => {
+    const text = textOf(await client.callTool({ name: "roblox_index", arguments: {} }));
 
     for (const path of CONVENTIONS) {
       assert.ok(text.includes(path), `the index must route ${path}`);
     }
-  });
-});
-
-test("all ten Roblox conventions are served", async () => {
-  await withClient(async ({ client }) => {
-    for (const path of CONVENTIONS) {
-      const text = textOf(
-        await client.callTool({ name: "roblox_instruction", arguments: { path } })
-      );
-      assert.ok(text.length > 500, `${path} came back empty or truncated`);
-    }
-  });
-});
-
-test("a traversal attempt reports not found and leaks nothing", async () => {
-  await withClient(async ({ client }) => {
-    for (const path of [
-      "../../package.json",
-      "../../../.git/config",
-      "roblox/../../package.json",
-      "/etc/passwd",
-      "C:\\Windows\\System32\\drivers\\etc\\hosts",
-    ]) {
-      const text = textOf(
-        await client.callTool({ name: "roblox_instruction", arguments: { path } })
-      );
-
-      assert.match(text, /^not found:/, `${path} must be refused`);
-      assert.doesNotMatch(text, /"name":/, `${path} must leak nothing`);
-      assert.doesNotMatch(text, /\[core\]/, `${path} must leak nothing`);
-    }
-  });
-});
-
-test("an unknown path inside the set reports not found", async () => {
-  await withClient(async ({ client }) => {
-    const text = textOf(
-      await client.callTool({
-        name: "roblox_instruction",
-        arguments: { path: "roblox/toolchain/blender-guide.md" },
-      })
-    );
-
-    assert.match(text, /^not found: roblox\/toolchain\/blender-guide\.md/);
-  });
-});
-
-test("the set root itself is not a file", async () => {
-  await withClient(async ({ client }) => {
-    const text = textOf(
-      await client.callTool({ name: "roblox_instruction", arguments: { path: "." } })
-    );
-
-    assert.match(text, /^not found:/);
   });
 });
 
@@ -209,10 +258,7 @@ test("the server needs no key to answer", async () => {
 
   await withClient(async ({ client }) => {
     const text = textOf(
-      await client.callTool({
-        name: "roblox_instruction",
-        arguments: { path: "roblox/language/luau-authoring.md" },
-      })
+      await client.callTool({ name: "luau_authoring", arguments: {} })
     );
 
     assert.ok(text.length > 500, "the set is served without a key");

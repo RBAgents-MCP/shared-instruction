@@ -29,6 +29,8 @@ current request.
 | File | Purpose |
 |---|---|
 | [`../memory/tasks/http-transport-container.md`](../memory/tasks/http-transport-container.md) | Branch `build/http-transport-container`: host allow-list, explicit bind, drain-before-close, cross-platform `start:http`, container image, real-socket test. |
+| [`../memory/tasks/per-file-tools.md`](../memory/tasks/per-file-tools.md) | Branch `feat/per-file-tools`: one tool per markdown file, generated at boot; `roblox_instruction` and the `path` argument removed; baseline, plan deviations, and what was reported rather than fixed. |
+
 ## Maintenance
 
 Any file added to or removed from `.agents/memory/` is reflected here **in the same
