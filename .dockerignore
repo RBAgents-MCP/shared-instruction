@@ -1,0 +1,34 @@
+# The build context. Everything the image needs is package.json, package-lock.json,
+# src/, and content/ - everything else below is either local state or documentation
+# the server does not read.
+#
+# test/ is excluded, which is why the image cannot run its own suite.
+#
+# .github/ and compose.yaml name paths this repository does not have. They are kept
+# anyway: a pattern for an absent path costs nothing and is correct the day the
+# path appears.
+
+node_modules/
+.git/
+.gitignore
+.gitattributes
+
+test/
+wiki/
+.agents/
+
+AGENTS.md
+README.md
+LICENSE
+
+Dockerfile
+.dockerignore
+
+.env
+.env.*
+*.log
+.DS_Store
+coverage/
+
+.github/
+compose.yaml
