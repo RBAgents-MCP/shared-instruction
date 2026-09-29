@@ -21,6 +21,8 @@ runs it directly.
 ```
 AGENTS.md                     entry point, connector bootstrap, trigger table
 package.json                  both bins, no build step
+Dockerfile                    the container image; MCP_TRANSPORT selects the transport
+.dockerignore                 the build context - everything the image does not need
 content/                      the published set - the product
   index/                      the routing index
 src/
@@ -33,6 +35,7 @@ src/
     roblox-instruction.js    the only tool: read one file from the set by path
 test/
   server.test.js              registration, schema, every file, traversal, surface parity
+  http.test.js                the HTTP transport over a real spawned process and socket
 wiki/                         human documentation
 .agents/                      this set - rules, agent wiki, memory, indexes
 ```
@@ -42,11 +45,12 @@ wiki/                         human documentation
 | Command | What it does |
 |---|---|
 | `npm install` | Installs `@modelcontextprotocol/sdk` and `zod`. |
-| `npm test` | `node --test`. The whole suite; there is no watch mode. |
+| `npm test` | `node --test`. The whole suite; there is no watch mode. `http.test.js` spawns real servers, so it takes seconds rather than milliseconds. |
 | `npm run cli -- tools` | Lists registered tools through the CLI surface. |
 | `npm start` | Serves over stdio. |
 | `npm run start:http` | Serves over streamable HTTP on `PORT` (default 3000). |
 | `npm run inspect` | MCP Inspector against the stdio server. |
+| `docker build -t rbagents-shared-instruction .` | Builds the container image. Not run as part of any change that adds it — the image is written-and-untested. |
 
 ## Environment variables
 
@@ -54,6 +58,8 @@ wiki/                         human documentation
 |---|---|---|
 | `MCP_TRANSPORT` | `src/index.js` | `stdio` (default) or `http`. |
 | `PORT` | `src/index.js` | HTTP port, default `3000`. |
+| `HOST` | `src/index.js` | HTTP bind address, default `0.0.0.0`. `127.0.0.1` binds loopback only. |
+| `MCP_ALLOWED_HOSTS` | `src/index.js` | Comma-separated `Host` allow-list on the HTTP transport. Off when unset, and the server says so on stderr at startup. |
 
 There is no `API_KEY`. Nothing here reaches an external service.
 
@@ -77,6 +83,10 @@ suite.
 * **A fresh `McpServer` per HTTP request.** `src/index.js` builds and closes one per
   request because `McpServer` holds per-connection state. Do not hoist it to module
   scope.
+* **The Host allow-list is off when unset.** `MCP_ALLOWED_HOSTS` empty means every
+  `Host` header is accepted, which is the safe-looking default and the unsafe one.
+  The SDK only applies this automatically on loopback, and a container is the case
+  that needs it.
 * **`content/` is the product, not a source folder.** Every file in it is served
   verbatim on the next boot, with its frontmatter intact. `src/` is local; a change to
   `content/` changes what every consuming repository reads.

@@ -28,6 +28,7 @@ current request.
 
 | File | Purpose |
 |---|---|
+| [`../memory/tasks/http-transport-container.md`](../memory/tasks/http-transport-container.md) | Branch `build/http-transport-container`: host allow-list, explicit bind, drain-before-close, cross-platform `start:http`, container image, real-socket test. |
 ## Maintenance
 
 Any file added to or removed from `.agents/memory/` is reflected here **in the same

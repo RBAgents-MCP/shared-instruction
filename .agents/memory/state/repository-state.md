@@ -36,10 +36,16 @@ Node.js 20+, ESM, no build step. Two runtime dependencies:
 * **Documentation.** `wiki/information/` and `wiki/environments/`, all updated in the
   same commit as the code change they describe, plus the first changelog at
   `wiki/logs/0/1/0/`.
+* **Container image.** `Dockerfile` and `.dockerignore`, running `src/index.js` with
+  `MCP_TRANSPORT` selecting the transport. **Written and never built** — see
+  [`../tasks/http-transport-container.md`](../tasks/http-transport-container.md).
 
 ## What is not built
 
-* The HTTP transport is stateless and unauthenticated; `/healthz` and `/mcp` are open.
+* The HTTP transport is stateless and unauthenticated, and it is not a stateful
+  server in front of a store. `MCP_ALLOWED_HOSTS` narrows which `Host` header
+  values are answered, and is **off when unset** — narrower than no check at all,
+  and still not authentication.
 * No CI workflow, no linter, no formatter.
 * `content/` is a copy. A change to the set belongs upstream in the workspace set first;
   this repository is a delivery surface for it, not its editor.

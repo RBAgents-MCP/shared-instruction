@@ -50,8 +50,38 @@ npm run cli -- tools
 npm start
 ```
 
-No key, no environment variable, no configuration. The server starts and answers with
-nothing set.
+No key, no configuration, nothing required. The server starts and answers with nothing
+set.
+
+### Two exceptions on the HTTP transport: `HOST` and `MCP_ALLOWED_HOSTS`
+
+`HOST` names the interface the HTTP transport binds. It defaults to `0.0.0.0`, which
+is what a published container port needs; set `HOST=127.0.0.1` to bind loopback
+only.
+
+`MCP_ALLOWED_HOSTS` is a security variable, and it is worth stating plainly because
+the default is the unsafe one.
+
+**An empty or unset `MCP_ALLOWED_HOSTS` means the guard is off.** The server then
+accepts every `Host` header, and says so once on stderr at startup. Set it to a
+comma-separated allow-list of hostnames to turn it on:
+
+```bash
+MCP_TRANSPORT=http MCP_ALLOWED_HOSTS=example.test,localhost node src/index.js
+```
+
+A request whose `Host` is not on the list is refused `403` before it reaches a route.
+The list matches the hostname, not `host:port`, so `example.test` also covers
+`example.test:3000`.
+
+Why it exists at all: the SDK applies Host validation automatically only when the
+server is on loopback. A container binds every interface — which is the deployment
+that needs the check — so this server applies it explicitly instead of inheriting a
+default that would have switched itself off exactly where it mattered.
+
+This is **not authentication**, and the server has none. It narrows who may address
+it; it does not decide who may read the set. Full variable reference:
+[`wiki/environments/env.md`](wiki/environments/env.md).
 
 ## The set
 
@@ -77,6 +107,7 @@ content/
 |---|---|
 | Local stdio | `command: node`, `args: ["src/index.js"]`, `cwd:` this checkout |
 | Local HTTP | `npm run start:http`, then `http://localhost:3000/mcp` |
+| Container | `docker run --rm -i <image>`, or `-p 3000:3000 -e MCP_TRANSPORT=http` for HTTP |
 | Remote | Settings → Connectors → Add custom connector → `https://<host>/mcp` |
 
 The `/mcp` path is not optional on either HTTP form.
@@ -89,6 +120,8 @@ The `/mcp` path is not optional on either HTTP form.
 - [`wiki/environments/setup.md`](wiki/environments/setup.md) — installing and running
   both modes.
 - [`wiki/environments/env.md`](wiki/environments/env.md) — environment variables.
+- [`wiki/environments/docker.md`](wiki/environments/docker.md) — building and running the
+  container image.
 
 Full map: [`.agents/index/project-wiki-index.md`](.agents/index/project-wiki-index.md).
 
