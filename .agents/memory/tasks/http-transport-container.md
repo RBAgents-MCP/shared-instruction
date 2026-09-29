@@ -104,3 +104,20 @@ with `HOST` configurable the old form would report a port without saying where.
 **`HOST` is a prerequisite for the test harness, not an extra.** `startServer()`
 sets `HOST=127.0.0.1` so the suite does not bind every interface for its duration;
 without this step there is no `HOST` for it to set.
+
+### S8 — drain-before-close
+
+The transport is stateless, so there is no session map to port: the in-flight
+requests are the sessions. Each request's `finish` closure — the one already
+registered on `res.on("close")` — goes into a `Set` on the way in and comes out on
+the way out.
+
+`shutdown` closes the listener first, then `Promise.allSettled`s the pending
+`finish` calls, then exits `0`. The order is the improvement: closing the listener
+and exiting in one step is what drops a socket under a peer that was still being
+answered. A count goes to stderr when there is anything to drain.
+
+Not verified by observation on this host — **Windows does not deliver `SIGTERM` to a
+Node child**, so `shutdown` never runs here and a spawned server exits on the
+signal rather than on the handler. The test asserts the weaker property where
+signals are not observable, and the exit code where they are.

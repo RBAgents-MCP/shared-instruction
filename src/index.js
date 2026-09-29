@@ -88,6 +88,13 @@ function hostGuard(hosts) {
 if (transportName === "http" || transportName === "streamable-http") {
   const guard = allowedHosts.length > 0 ? hostGuard(allowedHosts) : null;
 
+  /*
+   * In-flight requests. The transport is stateless - a fresh McpServer per
+   * request - so "the live sessions" here are the requests currently being
+   * answered. Tracked only so shutdown can close them deliberately.
+   */
+  const inFlight = new Set();
+
   const httpServer = createHttpServer(async (req, res) => {
     // Before the body parser, and before any route: a request that fails the
     // Host check must not be able to reach a handler at all.
@@ -120,10 +127,13 @@ if (transportName === "http" || transportName === "streamable-http") {
     const server = createServer({ version });
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
 
-    res.on("close", () => {
+    const finish = () => {
+      inFlight.delete(finish);
       void transport.close();
       void server.close();
-    });
+    };
+    inFlight.add(finish);
+    res.on("close", finish);
 
     try {
       await server.connect(transport);
@@ -145,7 +155,25 @@ if (transportName === "http" || transportName === "streamable-http") {
     );
   });
 
-  const shutdown = () => httpServer.close(() => process.exit(0));
+  /*
+   * Drain-before-close. The order is the point: stop new arrivals first, then
+   * let each in-flight request be closed deliberately rather than abandoned when
+   * the process exits, and only then exit. Closing the listener and exiting in
+   * one step is what drops sockets under a peer that was still being answered.
+   */
+  const shutdown = () => {
+    httpServer.close();
+
+    const pending = [...inFlight];
+    if (pending.length === 0) {
+      process.exit(0);
+      return;
+    }
+
+    process.stderr.write(`draining ${pending.length} in-flight request(s)\n`);
+    void Promise.allSettled(pending.map((request) => request())).then(() => process.exit(0));
+  };
+
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 } else {
