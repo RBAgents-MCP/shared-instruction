@@ -47,7 +47,8 @@ that names nothing useful.
 | Tool registration and `listTools()` | `src/server.js` |
 | The set root, `CONTENT_DIR` | `src/content.js` |
 | CLI commands | `src/cli.js` |
-| Transport and entry point | `src/index.js` |
+| The HTTP application - routes, `Host` guard, body limit | `src/app.js` |
+| Transport selection, the port, and the entry point | `src/index.js` |
 | Tests | `test/{subject}.test.js` |
 
 ## Commands

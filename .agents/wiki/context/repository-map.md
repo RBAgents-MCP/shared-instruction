@@ -26,7 +26,8 @@ Dockerfile                    the container image; MCP_TRANSPORT selects the tra
 content/                      the published set - the product
   index/                      the routing index
 src/
-  index.js                    entry point; picks stdio or streamable HTTP, owns the HTTP server
+  index.js                    entry point; picks stdio or streamable HTTP, owns the port and the process
+  app.js                      the express application: routes, Host guard, body limit; never listens
   server.js                   builds the McpServer and registers every tool; exports listTools()
   content.js                  the set root: CONTENT_DIR
   cli.js                      the CLI: help, version, tools, serve
@@ -44,7 +45,7 @@ wiki/                         human documentation
 
 | Command | What it does |
 |---|---|
-| `npm install` | Installs `@modelcontextprotocol/sdk` and `zod`. |
+| `npm install` | Installs `@modelcontextprotocol/sdk`, `express` and `zod`. |
 | `npm test` | `node --test`. The whole suite; there is no watch mode. `http.test.js` spawns real servers, so it takes seconds rather than milliseconds. |
 | `npm run cli -- tools` | Lists registered tools through the CLI surface. |
 | `npm start` | Serves over stdio. |
@@ -83,13 +84,18 @@ suite.
   takes an argument, so there is nothing to traverse with. Do not reintroduce a
   `readSetFile` or a caller-supplied path as a convenience; that would undo the
   structural read-only property.
-* **A fresh `McpServer` per HTTP request.** `src/index.js` builds and closes one per
+* **A fresh `McpServer` per HTTP request.** `src/app.js` builds and closes one per
   request because `McpServer` holds per-connection state. Do not hoist it to module
   scope.
-* **The Host allow-list is off when unset.** `MCP_ALLOWED_HOSTS` empty means every
-  `Host` header is accepted, which is the safe-looking default and the unsafe one.
-  The SDK only applies this automatically on loopback, and a container is the case
-  that needs it.
+* **`src/app.js` builds the app; `src/index.js` binds the port.** Do not merge them and
+  do not call `listen()` from `src/app.js` - a factory that also opens a socket cannot
+  be reasoned about, or tested, without opening one.
+* **The Host allow-list is off when unset.** `MCP_ALLOWED_HOSTS` empty, or set to
+  nothing but separators, means the SDK's `hostHeaderValidation` middleware is **not
+  mounted at all** and every `Host` header is accepted - the safe-looking default and
+  the unsafe one. The SDK only applies this automatically on loopback, and a container
+  is the case that needs it. There is no shim: the middleware is mounted natively, so
+  do not reintroduce a stand-in response object.
 * **`content/` is the product, not a source folder.** Every file in it is served
   verbatim on the next boot, with its frontmatter intact. `src/` is local; a change to
   `content/` changes what every consuming repository reads.

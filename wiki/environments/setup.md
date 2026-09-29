@@ -19,7 +19,7 @@ npm install
 npm test
 ```
 
-Two dependencies: `@modelcontextprotocol/sdk` and `zod`.
+Three dependencies: `@modelcontextprotocol/sdk`, `express` and `zod`.
 
 ## No authentication
 
@@ -124,11 +124,16 @@ npm run start:http
 rbagents-shared-instruction serve --http --port 3000
 ```
 
-Check it is up:
+The HTTP transport is an [express](https://expressjs.com) application with exactly two
+routes. Check it is up:
 
 ```bash
-curl -s http://localhost:3000/healthz
+curl -s http://localhost:3000/healthz   # 200, with the server id and its version
+curl -s -X POST http://localhost:3000/mcp   # the MCP endpoint
 ```
+
+Any other method on `/mcp` is refused `405`, and any other path is refused `404` with
+a message naming both routes above.
 
 ### In a container
 

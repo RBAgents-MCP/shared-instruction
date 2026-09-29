@@ -68,7 +68,7 @@ optional on either HTTP form.
 | Path | What |
 |---|---|
 | `package.json` | Both bins, and the version the server reports. |
-| `node_modules/` | `@modelcontextprotocol/sdk` and `zod`, installed with `npm ci --omit=dev`. |
+| `node_modules/` | `@modelcontextprotocol/sdk`, `express` and `zod`, installed with `npm ci --omit=dev`. |
 | `src/` | The server and the CLI. |
 | `content/` | The ten Roblox conventions and their index, copied verbatim. |
 

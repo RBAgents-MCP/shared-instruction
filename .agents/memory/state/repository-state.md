@@ -13,8 +13,8 @@ gone, and the set is the tool surface — 11 tools, one per file, generated at b
 
 ## Stack
 
-Node.js 20+, ESM, no build step. Two runtime dependencies:
-`@modelcontextprotocol/sdk` and `zod`. Tests are `node --test`, no framework.
+Node.js 20+, ESM, no build step. Three runtime dependencies:
+`@modelcontextprotocol/sdk`, `express` and `zod`. Tests are `node --test`, no framework.
 
 ## What exists
 
@@ -43,6 +43,12 @@ Node.js 20+, ESM, no build step. Two runtime dependencies:
 * **Container image.** `Dockerfile` and `.dockerignore`, running `src/index.js` with
   `MCP_TRANSPORT` selecting the transport. **Written and never built** — see
   [`../tasks/http-transport-container.md`](../tasks/http-transport-container.md).
+* **HTTP transport as an express application.** `src/app.js` builds the app and
+  returns it without listening; `src/index.js` owns the port, the interface, the
+  `inFlight` set and the drain. The `Host` guard is the SDK's
+  `hostHeaderValidation` **mounted natively** — the hand-written `hostGuard` shim
+  that inferred refusal from whether a stand-in `res.json()` was called is deleted.
+  See [`../decisions/express-for-http-transport.md`](../decisions/express-for-http-transport.md).
 
 ## What is not built
 
