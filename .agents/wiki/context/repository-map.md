@@ -35,6 +35,7 @@ src/
     roblox-instruction.js    the only tool: read one file from the set by path
 test/
   server.test.js              registration, schema, every file, traversal, surface parity
+  http.test.js                the HTTP transport over a real spawned process and socket
 wiki/                         human documentation
 .agents/                      this set - rules, agent wiki, memory, indexes
 ```
@@ -44,7 +45,7 @@ wiki/                         human documentation
 | Command | What it does |
 |---|---|
 | `npm install` | Installs `@modelcontextprotocol/sdk` and `zod`. |
-| `npm test` | `node --test`. The whole suite; there is no watch mode. |
+| `npm test` | `node --test`. The whole suite; there is no watch mode. `http.test.js` spawns real servers, so it takes seconds rather than milliseconds. |
 | `npm run cli -- tools` | Lists registered tools through the CLI surface. |
 | `npm start` | Serves over stdio. |
 | `npm run start:http` | Serves over streamable HTTP on `PORT` (default 3000). |

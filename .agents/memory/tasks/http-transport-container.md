@@ -165,3 +165,41 @@ body now ends `This server serves GET /healthz and POST /mcp.`
 This is a behaviour change the step list does not contain and the verification file
 does. It is its own commit rather than folded into the test, so the test that
 asserts it is not also the thing that introduced it.
+
+### S14 — `test/http.test.js`
+
+Ten cases, each spawning `src/index.js` with `process.execPath` on a free port and
+`HOST=127.0.0.1`, and talking to it as a client. No case is stubbed.
+
+The tool count is read from `listTools()` and the tool name is taken from that same
+call — nothing here hard-codes a surface another plan can move. The parity case
+compares the HTTP tool list against an `InMemoryTransport` one, normalising both
+through `JSON` first: the SDK leaves `title`, `annotations` and `_meta` present-but-
+undefined in memory, no client ever sees them, and comparing without normalising
+would assert a difference that exists only in the object model. **That case failed
+on its first run for exactly this reason** — recorded because it is what a stubbed
+test would have hidden.
+
+`requestWithHost` uses `node:http` rather than `fetch`: fetch drops a forbidden
+header, so an allow-list tested through fetch would pass whatever the control
+really does.
+
+### Every new case was seen red
+
+A mutation pass over `src/index.js`, reverting after each:
+
+| Mutation | Caught by |
+|---|---|
+| `if (guard && !guard(req, res)) return;` removed | the allow-list case, and the case after it |
+| `listen(port, host, …)` back to `listen(port, …)` | the `HOST` case |
+| the list widened to always include loopback | the case after a refused request |
+| the unset notice suppressed | the startup-notice case |
+| the routes removed from the 404 body | the 404 case |
+
+**One survived: dropping the drain.** Reverting `shutdown` to exit immediately
+left the suite green. The reason is the host, not the test: Windows does not
+deliver `SIGTERM` to a Node child, so `shutdown` never runs here at all, and the
+`SIGTERM` case can only assert the weaker property — that the process did not exit
+`1`. **The drain ordering is therefore unverified on this machine.** It is
+implemented, reviewed, and correct by construction on a platform that delivers
+signals; it has not been observed doing its job.
