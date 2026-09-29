@@ -121,3 +121,9 @@ Not verified by observation on this host — **Windows does not deliver `SIGTERM
 Node child**, so `shutdown` never runs here and a spawned server exits on the
 signal rather than on the handler. The test asserts the weaker property where
 signals are not observable, and the exit code where they are.
+
+### S9 — the CLI help
+
+`src/cli.js`'s `Environment` block now names all four. No new flag: `serve --http`,
+`--stdio`, and `--port` already cover transport selection, and the help text is
+where that answer belongs.

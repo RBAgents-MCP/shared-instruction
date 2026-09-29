@@ -18,7 +18,9 @@ Options
 
 Environment
   MCP_TRANSPORT    stdio (default) or http
-  PORT             HTTP port, default 3000`;
+  PORT             HTTP port, default 3000
+  HOST             HTTP bind address, default 0.0.0.0
+  MCP_ALLOWED_HOSTS  comma-separated Host allow-list; off when unset`;
 
 const [command, ...rest] = process.argv.slice(2);
 
