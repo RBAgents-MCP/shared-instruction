@@ -1,6 +1,6 @@
 {
   "name": "@rbagents-mcp/shared-instruction",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Read-only MCP server delivering the Roblox development instruction set - Luau, Rojo, package architecture, asset submodules, data stores, auras, and naming.",
   "type": "module",
   "main": "src/index.js",
