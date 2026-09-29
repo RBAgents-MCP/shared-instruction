@@ -127,3 +127,30 @@ signals are not observable, and the exit code where they are.
 `src/cli.js`'s `Environment` block now names all four. No new flag: `serve --http`,
 `--stdio`, and `--port` already cover transport selection, and the help text is
 where that answer belongs.
+
+### S13 — a `start:http` that runs outside a POSIX shell
+
+`"start:http": "MCP_TRANSPORT=http node src/index.js"` →
+`"start:http": "node src/cli.js serve --http"`.
+
+The `VAR=value cmd` prefix is a shell feature. npm runs scripts through `cmd.exe` on
+a stock Windows checkout, and the failure is not subtle:
+
+```text
+> MCP_TRANSPORT=http node src/index.js
+'MCP_TRANSPORT' is not recognized as an internal or external command,
+operable program or batch file.
+```
+
+**Observed on this host**, before the change, and the fixed script was observed
+after it — `npm run start:http` brings the HTTP path up, `/healthz` answers, and
+`npm run start:http -- --port 3993` binds 3993.
+
+**`cross-env` was the other option and was not taken.** It adds a dependency to a
+package that has two and wants none, and it solves a problem this repository does
+not have: the transport switch already exists, and `src/cli.js serve --http` sets
+`MCP_TRANSPORT` *inside* the Node process before it imports `src/index.js`. That
+form reads the variable at the same place, in the same order, as `src/index.js`
+does — which is the DECIDED block's test for picking the right one. The stdio entry
+point is untouched: `npm start` still runs `node src/index.js` with nothing set,
+and `serve --stdio` still wins over `--http`.
