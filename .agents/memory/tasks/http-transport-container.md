@@ -86,3 +86,21 @@ is off** is the load-bearing clause, and it points at `wiki/environments/env.md`
 `env.md` gained the row and a section; `repository-map.md` gained the variable and
 a gotcha; `repository-state.md` was reworded from "unauthenticated and open" to
 "narrowed by an allow-list that is off when unset".
+
+Observed, in a spawned process: `Host: evil.test` → `403`; `Host: example.test` →
+`200`; `Host: example.test:3987` → `200` (hostname, not `host:port`); the unset
+warning absent when the variable is set; stdout empty.
+
+### S6 — `HOST`
+
+`const host = process.env.HOST ?? "0.0.0.0"` and `listen(port, host, …)`. This
+changes no behaviour — `listen(port)` already bound every interface — it makes the
+decision visible and gives a deployment a way to take it back.
+
+The startup line moved from `on :${port}/mcp` to `on ${host}:${port}/mcp`, because
+with `HOST` configurable the old form would report a port without saying where.
+`serving over http` is still in it, which is the string the test waits for.
+
+**`HOST` is a prerequisite for the test harness, not an extra.** `startServer()`
+sets `HOST=127.0.0.1` so the suite does not bind every interface for its duration;
+without this step there is no `HOST` for it to set.

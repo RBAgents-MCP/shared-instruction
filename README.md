@@ -53,10 +53,14 @@ npm start
 No key, no configuration, nothing required. The server starts and answers with nothing
 set.
 
-### One exception: `MCP_ALLOWED_HOSTS`
+### Two exceptions on the HTTP transport: `HOST` and `MCP_ALLOWED_HOSTS`
 
-The HTTP transport reads one security variable, and it is worth stating plainly
-because the default is the unsafe one.
+`HOST` names the interface the HTTP transport binds. It defaults to `0.0.0.0`, which
+is what a published container port needs; set `HOST=127.0.0.1` to bind loopback
+only.
+
+`MCP_ALLOWED_HOSTS` is a security variable, and it is worth stating plainly because
+the default is the unsafe one.
 
 **An empty or unset `MCP_ALLOWED_HOSTS` means the guard is off.** The server then
 accepts every `Host` header, and says so once on stderr at startup. Set it to a

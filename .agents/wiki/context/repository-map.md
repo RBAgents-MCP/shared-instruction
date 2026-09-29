@@ -57,6 +57,7 @@ wiki/                         human documentation
 |---|---|---|
 | `MCP_TRANSPORT` | `src/index.js` | `stdio` (default) or `http`. |
 | `PORT` | `src/index.js` | HTTP port, default `3000`. |
+| `HOST` | `src/index.js` | HTTP bind address, default `0.0.0.0`. `127.0.0.1` binds loopback only. |
 | `MCP_ALLOWED_HOSTS` | `src/index.js` | Comma-separated `Host` allow-list on the HTTP transport. Off when unset, and the server says so on stderr at startup. |
 
 There is no `API_KEY`. Nothing here reaches an external service.

@@ -16,6 +16,15 @@ const transportName = (process.env.MCP_TRANSPORT ?? "stdio").toLowerCase();
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 
 /*
+ * The bind address, named rather than implied.
+ *
+ * listen(port) with no host binds every interface. That is what a published port
+ * needs and what a container gets, but it is a decision nobody made - so it is
+ * made here, visibly, and HOST=127.0.0.1 is the way to take it back.
+ */
+const host = process.env.HOST ?? "0.0.0.0";
+
+/*
  * The Host allow-list, off when the variable is unset or empty.
  *
  * The SDK's own Express application applies Host validation automatically, but
@@ -130,8 +139,10 @@ if (transportName === "http" || transportName === "streamable-http") {
     );
   }
 
-  httpServer.listen(port, () => {
-    process.stderr.write(`${SERVER_ID} ${version} serving over http on :${port}/mcp\n`);
+  httpServer.listen(port, host, () => {
+    process.stderr.write(
+      `${SERVER_ID} ${version} serving over http on ${host}:${port}/mcp\n`
+    );
   });
 
   const shutdown = () => httpServer.close(() => process.exit(0));

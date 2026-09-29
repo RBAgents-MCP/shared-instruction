@@ -1,12 +1,13 @@
 # Environment Variables
 
-Three variables, all optional. The server starts with none of them set and answers
+Four variables, all optional. The server starts with none of them set and answers
 every request.
 
 | Variable | Default | Read by | Effect |
 |---|---|---|---|
 | `MCP_TRANSPORT` | `stdio` | `src/index.js` | `stdio` or `http` (`streamable-http` is accepted too). |
 | `PORT` | `3000` | `src/index.js` | The port the HTTP transport listens on. Ignored on stdio. |
+| `HOST` | `0.0.0.0` | `src/index.js` | The interface the HTTP transport binds. `127.0.0.1` binds loopback only. Ignored on stdio. |
 | `MCP_ALLOWED_HOSTS` | unset | `src/index.js` | Comma-separated `Host` allow-list. **Unset or empty means the guard is off.** Ignored on stdio. |
 
 ## There is no `API_KEY`
@@ -38,6 +39,21 @@ rbagents-shared-instruction serve --http --port 8080
 
 The CLI's `serve` command sets both variables from its flags, so `--http`, `--stdio`,
 and `--port` are equivalent to exporting them.
+
+## `HOST`
+
+```bash
+# every interface (the default, and what a published container port needs)
+MCP_TRANSPORT=http node src/index.js
+
+# loopback only
+MCP_TRANSPORT=http HOST=127.0.0.1 node src/index.js
+```
+
+`listen(port)` with no host already binds every interface on this platform, so the
+default here changes no behaviour. Naming it makes the decision visible in one
+place instead of leaving it inside a call site, and gives a deployment a way to
+take it back.
 
 ## `MCP_ALLOWED_HOSTS`
 
