@@ -20,9 +20,9 @@ import { createServer } from "../src/server.js";
  * Host check, the message path - are exactly the parts a stub would replace with
  * the assumption being tested.
  *
- * Nothing here hard-codes a tool count or a tool name. The surface is one tool
- * today and may be eleven after another plan lands; the count is read from
- * listTools() and the name is taken from that same call.
+ * Nothing here hard-codes a tool count or a tool name. The surface is generated
+ * from content/ and may change with the set; the count is read from listTools()
+ * and the name is taken from that same call.
  */
 
 const ENTRY = fileURLToPath(new URL("../src/index.js", import.meta.url));
@@ -195,27 +195,30 @@ test("a tool call over HTTP returns the same bytes as in memory", async () => {
 
   const { tools } = await overHttp.listTools();
   const name = tools[0].name;
-  const args = { path: "roblox/toolchain/rojo-guide.md" };
 
-  const overTheWire = textOf(await overHttp.callTool({ name, arguments: args }));
-  const inProcess = textOf(await memory.client.callTool({ name, arguments: args }));
+  const overTheWire = textOf(await overHttp.callTool({ name, arguments: {} }));
+  const inProcess = textOf(await memory.client.callTool({ name, arguments: {} }));
 
   assert.equal(overTheWire, inProcess);
   assert.match(overTheWire, /^---\r?\n/, "the served bytes reach the client intact");
   await memory.server.close();
 });
 
-test("the traversal defence survives the network", async () => {
+test("the argument-free surface survives the network", async () => {
   const server = await startServer();
   const client = await connect(server.port);
   const { tools } = await client.listTools();
 
-  for (const path of ["../../package.json", "../../../.git/config", "/etc/passwd"]) {
-    const text = textOf(await client.callTool({ name: tools[0].name, arguments: { path } }));
-
-    assert.match(text, /^not found:/, `${path} must be refused over HTTP too`);
-    assert.doesNotMatch(text, /"name":/, `${path} must leak nothing`);
-    assert.doesNotMatch(text, /\[core\]/, `${path} must leak nothing`);
+  // The structural replacement for the traversal case this file used to carry:
+  // over a real socket, no tool advertises an argument, so there is nothing a
+  // caller could traverse with. A path argument over the wire would have to come
+  // back as a property in the advertised schema, and it does not.
+  for (const tool of tools) {
+    assert.deepEqual(
+      tool.inputSchema.properties ?? {},
+      {},
+      `${tool.name} must take no argument over HTTP either`
+    );
   }
 });
 
