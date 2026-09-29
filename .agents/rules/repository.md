@@ -57,6 +57,7 @@ npm run cli -- tools
 npm start         # stdio
 npm run start:http
 npm run inspect   # MCP Inspector against the stdio server
+docker build -t rbagents-shared-instruction .   # the container image; see wiki/environments/docker.md
 ```
 
 ## What must not be introduced

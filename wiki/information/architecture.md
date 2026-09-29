@@ -12,6 +12,7 @@ src/
   version.js   reads the version out of package.json at import
   tools/       one file per tool
 content/       the published set
+Dockerfile     the container image: node src/index.js, MCP_TRANSPORT selects the transport
 ```
 
 ## Entry point and transports
@@ -110,3 +111,4 @@ suite.
 
 * [`overview.md`](overview.md) — what this project is.
 * [`../environments/setup.md`](../environments/setup.md) — running it.
+* [`../environments/docker.md`](../environments/docker.md) — the container image.

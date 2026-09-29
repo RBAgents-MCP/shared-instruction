@@ -23,9 +23,10 @@ Two dependencies: `@modelcontextprotocol/sdk` and `zod`.
 
 ## No authentication
 
-Nothing here reaches an external service, so there is no key to set and no environment
-variable to configure. The server starts, lists its tool, and answers every request with
-nothing configured. Full list of variables: [`env.md`](env.md).
+Nothing here reaches an external service, so there is no key to set. The server
+starts, lists its tool, and answers every request with nothing configured. A few
+optional variables select the transport and narrow who may address it; none of them
+is a credential. Full list: [`env.md`](env.md).
 
 ## CLI mode
 
@@ -125,6 +126,24 @@ Check it is up:
 curl -s http://localhost:3000/healthz
 ```
 
+### In a container
+
+```bash
+docker build -t rbagents-shared-instruction:0.1.0 .
+
+# stdio
+docker run --rm -i rbagents-shared-instruction:0.1.0
+
+# streamable HTTP
+docker run --rm -p 3000:3000 \
+  -e MCP_TRANSPORT=http rbagents-shared-instruction:0.1.0
+```
+
+The image runs `src/index.js`, so it serves stdio unless `MCP_TRANSPORT` says
+otherwise — same selection as above, not a second entry point. Full page, including
+what is in the image and what has not been verified:
+[`docker.md`](docker.md).
+
 ### Inspect it
 
 ```bash
@@ -144,6 +163,7 @@ A `console.log` on the server path is a bug that corrupts the protocol stream.
 ## Related pages
 
 - [`env.md`](env.md) — every environment variable this project reads
+- [`docker.md`](docker.md) — building and running the container image
 - [`../information/overview.md`](../information/overview.md) — what this project is
 - [`../information/architecture.md`](../information/architecture.md) — how the pieces fit
 - [`README.md`](../../README.md)

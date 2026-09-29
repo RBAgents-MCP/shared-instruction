@@ -38,6 +38,8 @@ if the first is ever weakened, the boundary still holds.
 
 * An MCP server over **stdio** and **streamable HTTP**, with a `/healthz` endpoint on the
   HTTP transport.
+* A container image for the same server. The image runs the same entry point and
+  selects the transport the same way, so there is no second way to serve this package.
 * A CLI with `help`, `version`, `tools`, and `serve`.
 * A tool layer where each tool is its own file under `src/tools/`, declaring optional
   parameters with [zod](https://zod.dev).
@@ -55,3 +57,4 @@ build step** — the package ships source and Node runs it directly.
 * [`architecture.md`](architecture.md) — how the pieces fit together.
 * [`../environments/setup.md`](../environments/setup.md) — installing and running it.
 * [`../environments/env.md`](../environments/env.md) — environment variables.
+* [`../environments/docker.md`](../environments/docker.md) — the container image.

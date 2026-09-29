@@ -21,6 +21,8 @@ runs it directly.
 ```
 AGENTS.md                     entry point, connector bootstrap, trigger table
 package.json                  both bins, no build step
+Dockerfile                    the container image; MCP_TRANSPORT selects the transport
+.dockerignore                 the build context - everything the image does not need
 content/                      the published set - the product
   index/                      the routing index
 src/
@@ -47,6 +49,7 @@ wiki/                         human documentation
 | `npm start` | Serves over stdio. |
 | `npm run start:http` | Serves over streamable HTTP on `PORT` (default 3000). |
 | `npm run inspect` | MCP Inspector against the stdio server. |
+| `docker build -t rbagents-shared-instruction .` | Builds the container image. Not run as part of any change that adds it — the image is written-and-untested. |
 
 ## Environment variables
 

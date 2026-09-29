@@ -36,6 +36,9 @@ Node.js 20+, ESM, no build step. Two runtime dependencies:
 * **Documentation.** `wiki/information/` and `wiki/environments/`, all updated in the
   same commit as the code change they describe, plus the first changelog at
   `wiki/logs/0/1/0/`.
+* **Container image.** `Dockerfile` and `.dockerignore`, running `src/index.js` with
+  `MCP_TRANSPORT` selecting the transport. **Written and never built** — see
+  [`../tasks/http-transport-container.md`](../tasks/http-transport-container.md).
 
 ## What is not built
 

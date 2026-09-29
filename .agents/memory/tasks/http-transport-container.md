@@ -47,3 +47,19 @@ repository does not have — a pattern for an absent path costs nothing.
 **No Docker command was run.** Not `build`, not `run`, not `version`. `docker.md`
 says the image has never been built, in those terms, and retiring that sentence is
 the owner's call.
+
+### S4 and the documentation sweep
+
+Every pre-existing document that records what this repository contains was updated
+to include the image: `README.md` (container row in the transport table),
+`wiki/environments/setup.md` (both run forms), `wiki/information/architecture.md`
+and `overview.md`, `.agents/wiki/context/repository-map.md`,
+`.agents/rules/repository.md`, and
+[`.agents/memory/state/repository-state.md`](state/repository-state.md).
+
+`setup.md`'s "no environment variable to configure" was already false before this
+branch — `MCP_TRANSPORT` and `PORT` existed — and this branch adds two more. It was
+reworded rather than left to grow more wrong.
+
+`AGENTS.md`'s "none opens a socket" needed no edit: no tool was added, none gained an
+argument, and the only socket is the listener `src/index.js` already had.

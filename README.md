@@ -77,6 +77,7 @@ content/
 |---|---|
 | Local stdio | `command: node`, `args: ["src/index.js"]`, `cwd:` this checkout |
 | Local HTTP | `npm run start:http`, then `http://localhost:3000/mcp` |
+| Container | `docker run --rm -i <image>`, or `-p 3000:3000 -e MCP_TRANSPORT=http` for HTTP |
 | Remote | Settings → Connectors → Add custom connector → `https://<host>/mcp` |
 
 The `/mcp` path is not optional on either HTTP form.
@@ -89,6 +90,8 @@ The `/mcp` path is not optional on either HTTP form.
 - [`wiki/environments/setup.md`](wiki/environments/setup.md) — installing and running
   both modes.
 - [`wiki/environments/env.md`](wiki/environments/env.md) — environment variables.
+- [`wiki/environments/docker.md`](wiki/environments/docker.md) — building and running the
+  container image.
 
 Full map: [`.agents/index/project-wiki-index.md`](.agents/index/project-wiki-index.md).
 
