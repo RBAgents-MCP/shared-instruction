@@ -1,11 +1,12 @@
 # Architecture
 
-Four source files and one tool generator. There is no framework and no build step: the
-tool surface is generated at boot from the set, not compiled into source.
+Five source files and one tool generator. There is no build step: the tool surface is
+generated at boot from the set, not compiled into source.
 
 ```
 src/
-  index.js     entry point: picks a transport, owns the HTTP server
+  index.js     entry point: picks a transport, owns the port and the process
+  app.js       the express application: the routes, the Host guard, the body limit
   server.js    builds the McpServer, registers every tool, exports listTools()
   content.js   the set root: CONTENT_DIR
   cli.js       the CLI: help, version, tools, serve
@@ -22,13 +23,41 @@ Dockerfile     the container image: node src/index.js, MCP_TRANSPORT selects the
 
 * **stdio** (default) — one `McpServer` connected to a `StdioServerTransport` for the
   life of the process.
-* **streamable HTTP** — a plain `node:http` server exposing `GET /healthz` and
-  `POST /mcp`.
+* **streamable HTTP** — an [express](https://expressjs.com) application built by
+  `src/app.js`, exposing `GET /healthz` and `POST /mcp`.
+
+The split is deliberate. `src/app.js` builds the app and returns it; **it does not
+listen**. `src/index.js` owns the port, the interface, the drain, and the process
+lifetime. A file that both builds the app and binds a port cannot be reasoned about,
+or tested, without opening one.
 
 The HTTP transport is **stateless**: a fresh `McpServer` and transport are built for
 each request and closed when the response closes. That is deliberate — `McpServer`
 holds per-connection state, so hoisting one to module scope would leak state between
 unrelated callers.
+
+### The route table, and the Host guard
+
+`src/app.js` maps exactly two routes, and refuses everything else in the JSON-RPC
+envelope:
+
+| Request | Answer |
+|---|---|
+| `GET /healthz` | `200` with `{ status, server, version }` — no session, no tool |
+| `POST /mcp` | The MCP endpoint, a fresh server per request |
+| any other method on `/mcp` | `405` / `-32000`, `… is not supported in stateless mode` |
+| anything else | `404` / `-32601`, naming both routes this server serves |
+
+`MCP_ALLOWED_HOSTS` is applied by the MCP SDK's own `hostHeaderValidation`, mounted as
+ordinary express middleware **above the body parser and above every route**,
+`/healthz` included. A request that fails the `Host` check must not be able to reach a
+handler at all.
+
+**Unset, empty, or separators-only, the middleware is not mounted at all** and every
+`Host` header is served, with a line on stderr saying so. The check is skipped rather
+than guessed at: a wrong allow-list silently refusing every request is a worse failure
+than an absent one. Full reference in
+[`../environments/env.md`](../environments/env.md).
 
 ### stdout belongs to the protocol
 

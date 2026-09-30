@@ -8,7 +8,7 @@ every request.
 | `MCP_TRANSPORT` | `stdio` | `src/index.js` | `stdio` or `http` (`streamable-http` is accepted too). |
 | `PORT` | `3000` | `src/index.js` | The port the HTTP transport listens on. Ignored on stdio. |
 | `HOST` | `0.0.0.0` | `src/index.js` | The interface the HTTP transport binds. `127.0.0.1` binds loopback only. Ignored on stdio. |
-| `MCP_ALLOWED_HOSTS` | unset | `src/index.js` | Comma-separated `Host` allow-list. **Unset or empty means the guard is off.** Ignored on stdio. |
+| `MCP_ALLOWED_HOSTS` | unset | `src/app.js` | Comma-separated `Host` allow-list. **Unset or empty means the guard is off.** Ignored on stdio. |
 
 ## There is no `API_KEY`
 
@@ -68,12 +68,20 @@ MCP_TRANSPORT=http MCP_ALLOWED_HOSTS=example.test,localhost node src/index.js
 A comma-separated list of hostnames, compared against the `Host` header of every
 request before any route runs. A request that does not match is refused `403`.
 Comparison is on the hostname, so `example.test` also covers `example.test:3000`;
-there is no need to write the port.
+there is no need to write the port. An IPv6 address is written bracketed, exactly as
+the `Host` header carries it: `[::1]`.
 
 **An empty value means the guard is off.** `MCP_ALLOWED_HOSTS=`, an empty string,
-and an unset variable are the same thing, and the server writes one line to stderr
-at startup saying so. The safe-looking default is the unsafe one, and that is the
-single fact most likely to be misread about this variable.
+a value of nothing but commas and spaces, and an unset variable are the same thing.
+When that is the case the allow-list middleware is **not mounted at all** — the check
+is skipped rather than guessed at, because a list that silently refuses every request
+is a worse failure than no list — and the server writes one line to stderr saying so.
+The safe-looking default is the unsafe one, and that is the single fact most likely to
+be misread about this variable.
+
+That line is written **before** the port is bound, not after. An operator reading a
+log with no startup line in it still learns that no allow-list is in force, and a
+control that is off silently reads as present.
 
 Why it is not on by default: the MCP SDK's own Express application applies Host
 validation automatically, but **only when the server is on loopback**. This

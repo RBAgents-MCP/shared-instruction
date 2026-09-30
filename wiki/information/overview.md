@@ -52,8 +52,8 @@ filesystem; the eleven tools take nothing at all, so there is nothing to refuse.
 
 ## What ships
 
-* An MCP server over **stdio** and **streamable HTTP**, with a `/healthz` endpoint on the
-  HTTP transport.
+* An MCP server over **stdio** and **streamable HTTP**, the second served by an express
+  application with a `/healthz` endpoint and `POST /mcp`.
 * A container image for the same server. The image runs the same entry point and
   selects the transport the same way, so there is no second way to serve this package.
 * A CLI with `help`, `version`, `tools`, and `serve`.
@@ -65,8 +65,8 @@ filesystem; the eleven tools take nothing at all, so there is nothing to refuse.
 
 ## Requirements
 
-Node.js 20 or newer. Two dependencies (`@modelcontextprotocol/sdk`, `zod`), and **no
-build step** — the package ships source and Node runs it directly.
+Node.js 20 or newer. Three dependencies (`@modelcontextprotocol/sdk`, `express`,
+`zod`), and **no build step** — the package ships source and Node runs it directly.
 
 ## Related pages
 

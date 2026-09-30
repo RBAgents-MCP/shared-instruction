@@ -101,6 +101,22 @@ This is **not authentication**, and the server has none. It narrows who may addr
 it; it does not decide who may read the set. Full variable reference:
 [`wiki/environments/env.md`](wiki/environments/env.md).
 
+### The HTTP surface
+
+`src/app.js` is an [express](https://expressjs.com) application with exactly two
+routes, and refuses everything else in the JSON-RPC envelope.
+
+| Request | Answer |
+|---|---|
+| `GET /healthz` | `200` with the server id and its version — no session, no tool |
+| `POST /mcp` | The MCP endpoint |
+| Any other method on `/mcp` | `405` / `-32000` — stateless mode takes `POST` only |
+| Anything else | `404` / `-32601`, naming both routes this server serves |
+
+Request bodies are capped at 4 MB; an oversized body and a malformed one are both
+answered `400` / `-32700`. `X-Powered-By` is disabled, because handing an
+unauthenticated caller the framework and its version is a free upgrade suggestion.
+
 ## The set
 
 ```

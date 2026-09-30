@@ -22,6 +22,7 @@ current request.
 
 | File | Purpose |
 |---|---|
+| [`../memory/decisions/express-for-http-transport.md`](../memory/decisions/express-for-http-transport.md) | Why the HTTP transport moved to express, and why the SDK's `hostHeaderValidation` is mounted natively rather than through a hand-written response shim. |
 | [`../memory/decisions/harness-branch-naming.md`](../memory/decisions/harness-branch-naming.md) | Why a harness-designated branch never overrides the branching strategy. |
 
 ## Tasks
