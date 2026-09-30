@@ -5,7 +5,7 @@ generated at boot from the set, not compiled into source.
 
 ```
 src/
-  index.js     entry point: picks a transport, owns the port and the process
+  index.js     entry point: picks a transport, owns the port, the fork and the process
   app.js       the express application: the routes, the Host guard, the body limit
   server.js    builds the McpServer, registers every tool, exports listTools()
   content.js   the set root: CONTENT_DIR
@@ -27,9 +27,9 @@ Dockerfile     the container image: node src/index.js, MCP_TRANSPORT selects the
   `src/app.js`, exposing `GET /healthz` and `POST /mcp`.
 
 The split is deliberate. `src/app.js` builds the app and returns it; **it does not
-listen**. `src/index.js` owns the port, the interface, the drain, and the process
-lifetime. A file that both builds the app and binds a port cannot be reasoned about,
-or tested, without opening one.
+listen**. `src/index.js` owns the port, the interface, the fork, the drain, and the
+process lifetime. A file that both builds the app and binds a port cannot be reasoned
+about, or tested, without opening one.
 
 The HTTP transport is **stateless**: a fresh `McpServer` and transport are built for
 each request and closed when the response closes. That is deliberate — `McpServer`
@@ -65,6 +65,39 @@ On stdio, stdout **is** the JSON-RPC channel. Server-side logging goes to stderr
 `serve` prints nothing of its own; only CLI commands write to stdout. A `console.log`
 on the server path corrupts the stream, and the client reports a parse error that
 points nowhere useful.
+
+## One port, several processes
+
+On the HTTP transport the process that starts is a **`node:cluster` primary**. It
+binds nothing; it forks workers onto the one `PORT` and then waits. Every worker binds
+that same port through the cluster's shared handle, and the round-robin scheduler
+decides which one gets a connection. No `SO_REUSEPORT` is set by hand and no sticky
+session logic is written, because the scheduler already knows which connection is next
+and there is nothing to keep in step — the transport is stateless, so there are no
+sessions to route by.
+
+The count is `MCP_CLUSTER_WORKERS`, or `availableParallelism()` when it is unset: a
+container with two CPUs gets two workers, and a laptop does not get sixteen. A count
+of `1` forks nothing at all, which is what makes the difference between a forked and
+an unforked run attributable to the fork rather than to the transport.
+
+Because the primary does not listen, the startup lines in a log describe ports that
+are genuinely open — one per worker, from the processes that opened them. A primary
+that logged a listening line of its own would be claiming a port it does not hold.
+
+Two shutdown paths, and the ordering in each is the point:
+
+* **`SIGINT` / `SIGTERM`** reaches the primary, which **relays it to every worker and
+  waits for the last one to go** before exiting. Each worker closes its listener,
+  closes its own in-flight requests deliberately, and only then exits. A worker that
+  relayed a signal without doing that would print a drain it never performed.
+* **The primary dies outright** — `kill -9`, a crash — and a worker notices the closed
+  IPC channel and exits. Without that, a worker would keep the port and keep answering
+  requests nobody is supervising, and the next server to start would fail on
+  `EADDRINUSE` against a process nobody remembers starting.
+
+**stdio never forks.** A worker would inherit the process's stdout, and stdout is the
+JSON-RPC channel there.
 
 ## The tool layer
 

@@ -135,6 +135,13 @@ curl -s -X POST http://localhost:3000/mcp   # the MCP endpoint
 Any other method on `/mcp` is refused `405`, and any other path is refused `404` with
 a message naming both routes above.
 
+The HTTP process forks one worker per available CPU onto that single port. Set
+`MCP_CLUSTER_WORKERS=1` for a single process, or another number to choose:
+
+```bash
+MCP_TRANSPORT=http MCP_CLUSTER_WORKERS=1 npm run start:http
+```
+
 ### In a container
 
 ```bash

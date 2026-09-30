@@ -26,8 +26,8 @@ Dockerfile                    the container image; MCP_TRANSPORT selects the tra
 content/                      the published set - the product
   index/                      the routing index
 src/
-  index.js                    entry point; picks stdio or streamable HTTP, owns the port and the process
-  app.js                      the express application: routes, Host guard, body limit; never listens
+  index.js                    entry point; picks stdio or streamable HTTP, owns the port, the worker fork and the process
+  app.js                      the express application: routes, Host guard, body limit; never listens, never forks
   server.js                   builds the McpServer and registers every tool; exports listTools()
   content.js                  the set root: CONTENT_DIR
   cli.js                      the CLI: help, version, tools, serve
@@ -60,7 +60,8 @@ wiki/                         human documentation
 | `MCP_TRANSPORT` | `src/index.js` | `stdio` (default) or `http`. |
 | `PORT` | `src/index.js` | HTTP port, default `3000`. |
 | `HOST` | `src/index.js` | HTTP bind address, default `0.0.0.0`. `127.0.0.1` binds loopback only. |
-| `MCP_ALLOWED_HOSTS` | `src/index.js` | Comma-separated `Host` allow-list on the HTTP transport. Off when unset, and the server says so on stderr at startup. |
+| `MCP_ALLOWED_HOSTS` | `src/app.js` | Comma-separated `Host` allow-list on the HTTP transport. Off when unset, and the server says so on stderr at startup. |
+| `MCP_CLUSTER_WORKERS` | `src/index.js` | HTTP workers forked onto `PORT`. `1` forks nothing; unset means one per available CPU. Ignored on stdio. |
 
 There is no `API_KEY`. Nothing here reaches an external service.
 
@@ -90,6 +91,11 @@ suite.
 * **`src/app.js` builds the app; `src/index.js` binds the port.** Do not merge them and
   do not call `listen()` from `src/app.js` - a factory that also opens a socket cannot
   be reasoned about, or tested, without opening one.
+* **The HTTP process is a cluster primary that does not listen.** It forks workers and
+  waits; every worker binds the one `PORT`. Do not give the primary a startup line of
+  its own, and do not fork on stdio - a worker would inherit the JSON-RPC channel.
+  A worker must keep `process.on("disconnect", ...)` or it outlives a `kill -9` of the
+  primary, holding the port against the next run.
 * **The Host allow-list is off when unset.** `MCP_ALLOWED_HOSTS` empty, or set to
   nothing but separators, means the SDK's `hostHeaderValidation` middleware is **not
   mounted at all** and every `Host` header is accepted - the safe-looking default and

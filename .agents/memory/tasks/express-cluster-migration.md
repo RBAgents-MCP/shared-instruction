@@ -78,6 +78,7 @@ and the release log.
 |---|---|---|---|
 | Baseline, before any change | 22 | 22 | 0 |
 | After task 2, `feat/express-transport` | 30 | 30 | 0 |
+| After task 3, `feat/cluster-workers` | 38 | 38 | 0 |
 
 ---
 
@@ -158,3 +159,106 @@ on the list and the process keeps serving afterwards; every `Host` assertion use
 `MCP_CLUSTER_WORKERS` is task 3, so `src/cli.js`, `wiki/environments/env.md`,
 `wiki/environments/setup.md` and `wiki/environments/docker.md` gain it there. The
 `Dockerfile` is not modified.
+
+---
+
+### Task 3 — `feat/cluster-workers`
+
+A `node:cluster` primary forking workers onto the one `PORT`.
+
+**What changed**
+
+- `src/index.js` gained `workerCount()`, `startWorker()` and `startPrimary()`.
+  `src/app.js` is untouched: it is still a pure factory, and the fork lives with the
+  port because that is what the fork is for.
+- The primary binds nothing and prints no startup line of its own. It logs
+  `forking {n} HTTP workers on {host}:{port}/mcp`, so counting `serving over http` in
+  the log counts the workers and only the workers.
+- `MCP_CLUSTER_WORKERS` overrides the count when it parses to an integer of at least
+  `1`; unset, empty, `0` or a word fall through to `Math.max(1, availableParallelism())`.
+  **Anything that is not a positive integer is ignored rather than honoured**, because
+  a count of zero would mean a server that answers nothing.
+- `process.on("disconnect", () => process.exit(0))` in the worker, so a `kill -9` of
+  the primary leaves nothing holding the port.
+- The primary relays `SIGINT`/`SIGTERM` to every worker and exits once the last is
+  gone, with an unref'd ten-second backstop. **The drain line is written by the
+  worker** — this repository's `draining {n} in-flight request(s)`, in the process
+  actually draining — and the primary writes its own, different line,
+  `{signal}, draining {n} worker(s)`.
+- Each worker writes the `MCP_ALLOWED_HOSTS is unset` warning for itself, still
+  **before** `listen()`. A two-worker run says it twice, which is the honest shape:
+  two processes, two listeners, two unguarded entry points.
+- stdio never forks.
+
+**Verification**
+
+- `npm test` is 38/38 on this commit's tree with the **default** worker count, which
+  on this machine is 2 — so every pre-existing case in the file also ran against a
+  forked server.
+- `MCP_CLUSTER_WORKERS=1` logs `so no worker is forked`, logs no `forking` line,
+  prints exactly one `serving over http` line, and still serves the set.
+- `MCP_CLUSTER_WORKERS=2` logs `forking 2 HTTP workers`, reaches two
+  `serving over http` lines — two processes each bound the port, which is only
+  possible through the shared handle — and answers eight concurrent requests.
+- **No orphan survives a `SIGKILL` of the primary**, checked directly and not only
+  through the suite: workers `[127037, 127038]` serving on port 127024's primary,
+  primary `kill -9`ed, three seconds later `workers still alive: []`,
+  `port still served: false`, `port rebound cleanly`.
+- `SIGINT` logs `SIGINT, draining 2 worker(s)`, exits `0`, and the port is refused
+  afterwards — the primary cannot exit while a worker still holds the listener.
+- Concurrent tool calls stay isolated across the process boundary, each caller
+  compared against the same tool served in process rather than merely against "some
+  file". Tool names are read from `listTools()`, not written down.
+- A worker that is `SIGKILL`ed is reported by the primary, replaced with a new pid,
+  and the survivor is left alone; the server keeps answering on the pool it has now.
+- `MCP_TRANSPORT=stdio` over a real pipe returns the full tool list and logs neither
+  a fork line nor the no-fork line.
+- `npm run cli -- tools` still agrees with the MCP surface, and `npm run cli -- --help`
+  lists `MCP_CLUSTER_WORKERS`.
+
+**Three things the plan or the reference implementation predicted that turned out
+differently, each measured rather than assumed**
+
+- ***The worker's `draining {n} in-flight request(s)` line has no test.*** A tool call
+  completes in milliseconds and nothing in this server can be made slow — no tool
+  takes an argument, so there is no way to hold a request open. Firing eight
+  concurrent calls and signalling 5 ms later produced the drain line in **0 of 15
+  attempts**. The line is preserved **byte-identical from task 2**, and the exit-0 half
+  of the same `shutdown` is covered by `SIGTERM stops the server` and by the SIGINT
+  case; what is untested is the timing, and a test that raced it would be flaky
+  rather than strict.
+- ***The reference's worker-pid test does not work here, but an equivalent one does.**
+  `/proc/<pid>/task/<tid>/children` reads back **empty** on this kernel, so the
+  reference's `childrenOf` finds nothing. The parent pid is instead read from field 4
+  of `/proc/<pid>/stat` for every process, which does work — so the respawn case is
+  covered, Linux-only with an explicit skip elsewhere, and not weakened.
+- ***A worker does grow across many requests, and did before this migration too.** Over
+  800 sequential tool calls, total resident memory of the primary and its workers:
+
+  | Build | Start | After 800 calls | Growth |
+  |---|---|---|---|
+  | pre-migration `node:http`, one process | 98 MB | 181 MB | +85% |
+  | express, one worker (no fork) | 108 MB | 196 MB | +81% |
+  | express, two workers | 300 MB | 353 MB | +18% |
+
+  The express and pre-express single-process shapes are the same, so neither express
+  nor the cluster introduced it; it is the fresh-`McpServer`-per-request lifecycle
+  this repository has always had, and it is not linear. The test that ships is
+  therefore a **loose canary** — under 3x after 200 requests, which is what catches a
+  per-request object that is never released, which shows up as multiples rather than
+  tens of megabytes. The literal wording of the verification item, "a worker does not
+  grow in memory across many requests", is **not met and is not claimed to be**.
+
+**A test that was not written, on purpose.** Occupying the port in a parent to force a
+worker's bind to fail does not work in this environment: a child process binds a port
+its parent already holds, **successfully**, while the parent keeps serving. The case
+would not fail where it is meant to, so there is no such test. The gap is recorded
+rather than papered over with a weaker proxy. Nothing in the suite covers *worker bind
+failure* as a result.
+
+**Documentation corrected** — `README.md`, `wiki/information/architecture.md`,
+`wiki/environments/{setup,env,docker}.md`,
+`.agents/wiki/context/repository-map.md`, `src/cli.js` `--help`, and this record.
+`MCP_CLUSTER_WORKERS` is in `wiki/environments/env.md`, `wiki/environments/setup.md`,
+the CLI `--help` block and `wiki/environments/docker.md` (a container gets one worker
+per available CPU). The `Dockerfile` is not modified.
