@@ -9,7 +9,7 @@
 ## Build
 
 ```bash
-docker build -t rbagents-shared-instruction:1.0.0 .
+docker build -t rbagents-shared-instruction:1.1.0 .
 ```
 
 The tag carries the version from `package.json`, which the server also reads at
@@ -23,7 +23,7 @@ says otherwise, which is why the image does not serve HTTP by itself.
 ### stdio
 
 ```bash
-docker run --rm -i rbagents-shared-instruction:1.0.0
+docker run --rm -i rbagents-shared-instruction:1.1.0
 ```
 
 `-i` keeps stdin open. An MCP client that spawns the container is talking to this
@@ -33,7 +33,7 @@ form, and it is the default, so nothing is passed on the command line.
 
 ```bash
 docker run --rm -p 3000:3000 \
-  -e MCP_TRANSPORT=http rbagents-shared-instruction:1.0.0
+  -e MCP_TRANSPORT=http rbagents-shared-instruction:1.1.0
 ```
 
 Then:
@@ -53,7 +53,7 @@ curl -s http://localhost:3000/healthz
       "command": "docker",
       "args": [
         "run", "--rm", "-i",
-        "rbagents-shared-instruction:1.0.0"
+        "rbagents-shared-instruction:1.1.0"
       ]
     }
   }

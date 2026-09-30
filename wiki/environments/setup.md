@@ -145,14 +145,14 @@ MCP_TRANSPORT=http MCP_CLUSTER_WORKERS=1 npm run start:http
 ### In a container
 
 ```bash
-docker build -t rbagents-shared-instruction:1.0.0 .
+docker build -t rbagents-shared-instruction:1.1.0 .
 
 # stdio
-docker run --rm -i rbagents-shared-instruction:1.0.0
+docker run --rm -i rbagents-shared-instruction:1.1.0
 
 # streamable HTTP
 docker run --rm -p 3000:3000 \
-  -e MCP_TRANSPORT=http rbagents-shared-instruction:1.0.0
+  -e MCP_TRANSPORT=http rbagents-shared-instruction:1.1.0
 ```
 
 The image runs `src/index.js`, so it serves stdio unless `MCP_TRANSPORT` says
