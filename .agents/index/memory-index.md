@@ -30,6 +30,7 @@ current request.
 |---|---|
 | [`../memory/tasks/http-transport-container.md`](../memory/tasks/http-transport-container.md) | Branch `build/http-transport-container`: host allow-list, explicit bind, drain-before-close, cross-platform `start:http`, container image, real-socket test. |
 | [`../memory/tasks/per-file-tools.md`](../memory/tasks/per-file-tools.md) | Branch `feat/per-file-tools`: one tool per markdown file, generated at boot; `roblox_instruction` and the `path` argument removed; baseline, plan deviations, and what was reported rather than fixed. |
+| [`../memory/tasks/express-cluster-migration.md`](../memory/tasks/express-cluster-migration.md) | Express at `POST /mcp` and cluster workers, deleting the shim that bridged the SDK `Host` middleware to a raw `node:http` response. |
 
 ## Maintenance
 
