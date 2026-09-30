@@ -11,6 +11,7 @@ description: Release history of rbagents-shared-instruction, newest version firs
 ## Versions
 
 | Version | Changelog | Summary |
+| `1.1.0` | [`../../wiki/logs/1/1/0/CHANGELOG.md`](../../wiki/logs/1/1/0/CHANGELOG.md) |  |
 |---|---|---|
 | `1.0.0` | [`../../wiki/logs/1/0/0/CHANGELOG.md`](../../wiki/logs/1/0/0/CHANGELOG.md) | One tool per markdown file in `content/`, generated at boot. `roblox_instruction` and its `path` argument removed. |
 | `0.1.0` | [`../../wiki/logs/0/1/0/CHANGELOG.md`](../../wiki/logs/0/1/0/CHANGELOG.md) | Per-file tool layer with zod schemas and an optional unified API key; agent instruction system adopted. |
